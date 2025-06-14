@@ -47,6 +47,12 @@
       background-color: #262626;
     }
 
+    tbody tr:hover {
+      background-color: #3a3a3a;
+      cursor: pointer;
+    }
+
+
     a {
       color: #4da6ff;
       text-decoration: none;
@@ -204,6 +210,41 @@
       display: none;
       font-size: 0.9em;
     }
+
+    .type-border-Bug {
+      border-left: 4px solid #ff1900;
+      /* red */
+    }
+
+    .type-border-Task {
+      border-left: 4px solid #247e03;
+      /* blue */
+    }
+
+    .type-border-UserStory {
+      border-left: 4px solid #5dade2;
+      /* lighter blue */
+    }
+
+    .type-border-Feature {
+      border-left: 4px solid #f1c40f;
+      /* yellow */
+    }
+
+    .type-border-Issue {
+      border-left: 4px solid #e67e22;
+      /* orange */
+    }
+
+    .type-border-Epic {
+      border-left: 4px solid #9b59b6;
+      /* purple */
+    }
+
+    .type-border-Default {
+      border-left: 4px solid #7f8c8d;
+      /* gray */
+    }
   </style>
 </head>
 
@@ -353,9 +394,17 @@
 
       if (sortState.column) {
         data = data.slice().sort((a, b) => {
-          const v1 = (a[sortState.column] || "").toString().toLowerCase();
-          const v2 = (b[sortState.column] || "").toString().toLowerCase();
-          return sortState.asc ? v1.localeCompare(v2) : v2.localeCompare(v1);
+          const v1 = a[sortState.column];
+          const v2 = b[sortState.column];
+
+          if (sortState.column === "id") {
+            return sortState.asc ? v1 - v2 : v2 - v1;
+          }
+
+          const s1 = (v1 || "").toString().toLowerCase();
+          const s2 = (v2 || "").toString().toLowerCase();
+          return sortState.asc ? s1.localeCompare(s2) : s2.localeCompare(s1);
+
         });
       }
 
@@ -368,7 +417,7 @@
       <th>Type<br>${getMultiSelectHTML("typeFilter", typeOptions, filterState.type)}</th>
       <th>Assigned To<br>${getMultiSelectHTML("assignedToFilter", assignedOptions, filterState.assignedTo)}</th>
       <th>Project<br>${getMultiSelectHTML("projectFilter", projectOptions, filterState.project)}</th>
-      <th onclick="sortBy('lastUpdated')">Downloaded</th>
+      <th onclick="refreshVisibleWorkItems()" title="Click to refresh/download all visible work items.">Downloaded 🔄</th>
     </tr>
   </thead><tbody>`;
 
@@ -378,8 +427,10 @@
         for (const item of data) {
           const link = `${getBaseUrl()}/${item.project}/_workitems/edit/${item.id}`;
           const updatedText = item.lastUpdated ? timeAgo(item.lastUpdated) : "-";
-          const descMatch = item.description.toLowerCase().includes(search);
+          const descMatch = search && item.description.toLowerCase().includes(search);
           const titleClass = descMatch ? 'desc-match-border' : '';
+          const safeType = (item.type || "").replace(/\s+/g, "");
+          const typeClass = `type-border-${safeType || 'Default'}`;
 
           html += `<tr>
       <td><a href="${link}" target="_blank">${item.id}</a></td>
@@ -390,7 +441,7 @@
         ${highlight(item.title, search)}
       </td>
       <td>${highlight(item.state, search)}</td>
-      <td>${highlight(item.type, search)}</td>
+      <td class="${typeClass}">${highlight(item.type, search)}</td>
       <td>${highlight(item.assignedTo || "", search)}</td>
       <td>${highlight(item.project, search)}</td>
       <td><span class="refreshable" onclick="refreshWorkItem(${item.id})">${updatedText}</span></td>
@@ -472,6 +523,21 @@
         alert("Failed to refresh item: " + err);
       }
     }
+
+    async function refreshVisibleWorkItems() {
+      const visibleItems = Array.from(document.querySelectorAll("tbody tr"));
+      const ids = visibleItems.map(row => {
+        const idCell = row.querySelector("td a");
+        return idCell ? parseInt(idCell.textContent.trim(), 10) : null;
+      }).filter(id => id != null);
+
+      for (const id of ids) {
+        await refreshWorkItem(id);
+      }
+
+      statusBar.textContent = `Refreshed ${ids.length} visible work items.`;
+    }
+
 
     async function loadAllWorkItems() {
       const orgUrl = getBaseUrl();
