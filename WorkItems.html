@@ -343,11 +343,17 @@
       <label>Personal Access Token (PAT)</label>
       <input id="pat" type="password" placeholder="your PAT" />
       <label class="checkbox">
-        <input type="checkbox" id="includeCompleted" /> Include completed work items
+        <input type="checkbox" id="includeCompleted" /> Donwload completed work items
       </label>
       <label class="checkbox">
-        <input type="checkbox" id="onlyAssignedToMe" /> Only show work items assigned to me
+        <input type="checkbox" id="onlyAssignedToMe" /> Only download items assigned to me
       </label>
+      <label>
+        Auto-expand description on search (max items):
+        <input id="expandThreshold" type="number" min="1" value="10" />
+      </label>
+
+
       <button onclick="loadAllWorkItems()">Fetch & Cache Work Items</button>
     </div>
   </div>
@@ -364,6 +370,7 @@
     const filterInput = document.getElementById("filter");
     const includeCompletedCheckbox = document.getElementById("includeCompleted");
     const onlyAssignedToMeCheckbox = document.getElementById("onlyAssignedToMe");
+    const expandThresholdInput = document.getElementById("expandThreshold");
     const tableContainer = document.getElementById("table-container");
     const actionPane = document.getElementById("actionPane");
     const actionPaneContent = document.getElementById("actionPaneContent");
@@ -373,11 +380,16 @@
     patInput.value = localStorage.getItem("devopsPat") || "";
     includeCompletedCheckbox.checked = JSON.parse(localStorage.getItem("includeCompleted") || "false");
     onlyAssignedToMeCheckbox.checked = JSON.parse(localStorage.getItem("onlyAssignedToMe") || "false");
+    expandThresholdInput.value = localStorage.getItem("expandThreshold") || "10";
     filterInput.value = localStorage.getItem("textFilter") || "";
 
     let allData = [];
     let sortState = { column: "", asc: true };
     const filterState = JSON.parse(localStorage.getItem("multiFilters") || '{"state":[],"type":[],"assignedTo":[],"project":[]}');
+
+    expandThresholdInput.addEventListener("input", () => {
+      localStorage.setItem("expandThreshold", expandThresholdInput.value);
+    });
 
     function saveFilterState() {
       localStorage.setItem("multiFilters", JSON.stringify(filterState));
@@ -587,8 +599,21 @@
         (filterState.assignedTo.length === 0 || filterState.assignedTo.includes(w.assignedTo)) &&
         (filterState.project.length === 0 || filterState.project.includes(w.project))
       );
+
       renderTable(filtered);
+
+      const threshold = parseInt(localStorage.getItem("expandThreshold") || "10", 10);
+
+      if (term && filtered.length <= threshold) {
+        for (const item of filtered) {
+          if (item.description.toLowerCase().includes(term)) {
+            const row = document.getElementById(`desc-inline-${item.id}`);
+            if (row) row.style.display = "table-row";
+          }
+        }
+      }
     }
+
 
 
     async function refreshWorkItem(id) {
