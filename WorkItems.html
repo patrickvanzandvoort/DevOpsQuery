@@ -662,9 +662,18 @@
         <td class="${typeClass}">${highlight(item.type, search)}</td>
         <td>
           ${highlight(item.assignedTo || "", search)}
-          ${item.assignedTo ? `<span style="cursor:pointer;" onclick="clearAssignedTo(${item.id})" title="Clear assigned user">❌</span>` : ""}
+          ${item.assignedTo
+              ? `
+                <span style="cursor:pointer;" onclick="clearAssignedTo(${item.id})" title="Clear assigned user">❌</span>
+                <span style="cursor:pointer; margin-left: 0.4em;" onclick="refreshWorkItemsByField('assignedTo', '${item.assignedTo}')" title="Refresh all for ${item.assignedTo}">🔄</span>
+              `
+              : ""
+            }
         </td>
-        <td>${highlight(item.project, search)}</td>
+        <td>
+          ${highlight(item.project, search)}
+          <span style="cursor:pointer; margin-left: 0.4em;" onclick="refreshWorkItemsByField('project', '${item.project}')" title="Refresh all for ${item.project}">🔄</span>
+        </td>
         <td><span class="refreshable" onclick="refreshWorkItem(${item.id})">${updatedText}</span></td>
       </tr>
       <tr id="desc-inline-${item.id}" class="desc-inline-row" style="display: none;">
@@ -677,6 +686,10 @@
 
       html += `</tbody></table>`;
       tableContainer.innerHTML = html;
+    }
+    function setStatus(text) {
+      statusBar.textContent = text;
+      statusBar.style.display = text ? "inline-block" : "none";
     }
 
     function formatDateNL(iso) {
@@ -793,6 +806,90 @@
 
       statusBar.textContent = `Refreshed ${ids.length} visible work items.`;
     }
+
+    async function refreshWorkItemsByField(field, value) {
+      const orgUrl = getBaseUrl();
+      const pat = patInput.value.trim();
+      const authHeader = "Basic " + btoa(":" + pat);
+
+      if (!value) return;
+
+      const fieldName = field === "assignedTo" ? "System.AssignedTo" :
+        field === "project" ? "System.TeamProject" :
+          null;
+
+      if (!fieldName) {
+        console.warn(`Unsupported filter field: ${field}`);
+        return;
+      }
+
+      try {
+        setStatus(`Querying items where ${field} = '${value}'...`);
+
+        const projRes = await fetch(`${orgUrl}/_apis/projects?api-version=7.0`, {
+          headers: { Authorization: authHeader }
+        });
+        const projects = (await projRes.json()).value;
+
+        let allWorkItemIds = [];
+
+        for (const project of projects) {
+          const condition = `[${fieldName}] = '${value.replace(/'/g, "''")}'`;
+          const query = `SELECT [System.Id] FROM WorkItems WHERE ${condition} ORDER BY [System.ChangedDate] DESC`;
+
+          const queryRes = await fetch(`${orgUrl}/${project.name}/_apis/wit/wiql?api-version=7.0`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: authHeader
+            },
+            body: JSON.stringify({ query })
+          });
+
+          const queryData = await queryRes.json();
+          const ids = (queryData.workItems || []).map(w => w.id);
+          allWorkItemIds.push(...ids);
+        }
+
+        const newItems = [];
+        for (let i = 0; i < allWorkItemIds.length; i += 100) {
+          const batch = allWorkItemIds.slice(i, i + 100);
+          setStatus(`Downloading ${i + 1}-${i + batch.length} of ${allWorkItemIds.length}...`);
+
+          const itemsRes = await fetch(`${orgUrl}/_apis/wit/workitems?ids=${batch.join(",")}&api-version=7.0`, {
+            headers: { Authorization: authHeader }
+          });
+
+          const batchItems = await itemsRes.json();
+          newItems.push(...batchItems.value);
+        }
+
+        const now = new Date().toISOString();
+        const simplified = newItems.map(i => ({
+          id: i.id,
+          description: i.fields["System.Description"] || "",
+          project: i.fields["System.TeamProject"],
+          title: i.fields["System.Title"],
+          state: i.fields["System.State"],
+          type: i.fields["System.WorkItemType"],
+          assignedTo: i.fields["System.AssignedTo"]?.displayName || "",
+          createdDate: i.fields["System.CreatedDate"],
+          lastUpdated: now
+        }));
+
+        const dict = {};
+        [...allData, ...simplified].forEach(i => dict[i.id] = i);
+        allData = Object.values(dict);
+        localStorage.setItem("devopsWorkItems", JSON.stringify(allData));
+
+        setStatus(`Refreshed ${simplified.length} items for ${field}: ${value}`);
+        filterWorkItems();
+      } catch (err) {
+        setStatus(`Failed to refresh items for ${field}`);
+        alert("Error: " + err.message);
+      }
+    }
+
 
     function toggleInlineDescription(id) {
       const row = document.getElementById(`desc-inline-${id}`);
