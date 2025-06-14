@@ -222,7 +222,22 @@
       font-size: 0.9em;
       padding: 0.3em 0.25em;
       border-bottom: 1px solid var(--table-alt);
+      cursor: pointer;
     }
+
+    .dropdown-panel label input[type="checkbox"] {
+      flex: 0 0 auto;
+      margin: 0;
+      max-width: 14px;
+    }
+
+    .dropdown-panel label span {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
 
     .dropdown-panel label:last-child {
       border-bottom: none;
@@ -479,17 +494,47 @@
     }
 
     function getMultiSelectHTML(id, options, selectedValues) {
-      const label = selectedValues.length ? selectedValues.join(", ") : "(All)";
+      const sorted = [...options].sort((a, b) => a.localeCompare(b));
+
       return `
-      <div class="dropdown-container">
-        <div class="dropdown-toggle" onclick="toggleDropdown('${id}')">${label}</div>
-        <div class="dropdown-panel" id="${id}">
-          ${options.map(opt => `
-            <label>
-              <input type="checkbox" value="${opt}" ${selectedValues.includes(opt) ? 'checked' : ''} onchange="onMultiFilterChange('${id}')"/> ${opt}
-            </label>`).join("")}
-        </div>
-      </div>`;
+    <div class="dropdown-container">
+      <div class="dropdown-toggle" onclick="toggleDropdown('${id}')">
+        ${selectedValues.length ? selectedValues.join(", ") : "(All)"}
+      </div>
+      <div class="dropdown-panel" id="${id}">
+        <label>
+          <input type="checkbox" onchange="clearFilter('${id}')" />
+          <span>(All)</span>
+        </label>
+        <label>
+          <input type="checkbox" onchange="invertFilter('${id}')" />
+          <span>Invert</span>
+        </label>
+        ${sorted.map(opt => `
+          <label>
+            <input type="checkbox" value="${opt}" ${selectedValues.includes(opt) ? "checked" : ""} onchange="onMultiFilterChange('${id}')" />
+            <span>${opt}</span>
+          </label>`).join("")}
+      </div>
+    </div>`;
+    }
+
+    function clearFilter(id) {
+      const checkboxes = document.querySelectorAll(`#${id} input[type=checkbox]`);
+      checkboxes.forEach(cb => {
+        if (cb.value) cb.checked = false; // skip the control items
+      });
+
+      onMultiFilterChange(id);
+    }
+
+    function invertFilter(id) {
+      const checkboxes = document.querySelectorAll(`#${id} input[type=checkbox]`);
+      checkboxes.forEach(cb => {
+        if (cb.value) cb.checked = !cb.checked;
+      });
+
+      onMultiFilterChange(id);
     }
 
     function toggleDropdown(id) {
