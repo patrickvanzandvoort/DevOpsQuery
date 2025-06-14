@@ -556,20 +556,21 @@
             title="Click to show/hide description below">
           ${highlight(item.title, search)}
         </td>
-        <td title="${
-          item.createdDate
-            ? (showCreatedAsDate ? timeAgo(item.createdDate) : formatDateNL(item.createdDate))
-            : '-'
-        }">
-          ${
-            item.createdDate
+        <td title="${item.createdDate
+              ? (showCreatedAsDate ? timeAgo(item.createdDate) : formatDateNL(item.createdDate))
+              : '-'
+            }">
+          ${item.createdDate
               ? (showCreatedAsDate ? formatDateNL(item.createdDate) : timeAgo(item.createdDate))
               : "-"
-          }
+            }
         </td>
         <td class="${stateClass}">${highlight(item.state, search)}</td>
         <td class="${typeClass}">${highlight(item.type, search)}</td>
-        <td>${highlight(item.assignedTo || "", search)}</td>
+        <td>
+          ${highlight(item.assignedTo || "", search)}
+          ${item.assignedTo ? `<span style="cursor:pointer;" onclick="clearAssignedTo(${item.id})" title="Clear assigned user">❌</span>` : ""}
+        </td>
         <td>${highlight(item.project, search)}</td>
         <td><span class="refreshable" onclick="refreshWorkItem(${item.id})">${updatedText}</span></td>
       </tr>
@@ -836,6 +837,42 @@
       allData = JSON.parse(cached);
       filterWorkItems();
     }
+
+    async function clearAssignedTo(id) {
+      const item = allData.find(w => w.id === id);
+      if (!item) return;
+
+      const orgUrl = getBaseUrl();
+      const pat = patInput.value.trim();
+      const authHeader = "Basic " + btoa(":" + pat);
+
+      try {
+        const patchBody = [
+          {
+            op: "remove",
+            path: "/fields/System.AssignedTo"
+          }
+        ];
+
+        const res = await fetch(`${orgUrl}/_apis/wit/workitems/${id}?api-version=7.0`, {
+          method: "PATCH",
+          headers: {
+            Authorization: authHeader,
+            "Content-Type": "application/json-patch+json"
+          },
+          body: JSON.stringify(patchBody)
+        });
+
+        if (!res.ok) throw new Error(await res.text());
+
+        item.assignedTo = "";
+        filterWorkItems();
+        statusBar.textContent = `Cleared Assigned To for #${id}`;
+      } catch (err) {
+        alert("Failed to clear Assigned To: " + err.message);
+      }
+    }
+
 
     function applyTheme(theme) {
       document.body.classList.toggle("dark", theme === "dark");
