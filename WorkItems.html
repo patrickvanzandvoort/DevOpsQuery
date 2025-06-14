@@ -498,7 +498,7 @@
 
       return `
     <div class="dropdown-container">
-      <div class="dropdown-toggle" onclick="toggleDropdown('${id}')">
+      <div class="dropdown-toggle" onclick="event.stopPropagation(); toggleDropdown('${id}')">
         ${selectedValues.length ? selectedValues.join(", ") : "(All)"}
       </div>
       <div class="dropdown-panel" id="${id}">
