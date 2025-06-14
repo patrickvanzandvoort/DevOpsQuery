@@ -383,6 +383,7 @@
     expandThresholdInput.value = localStorage.getItem("expandThreshold") || "10";
     filterInput.value = localStorage.getItem("textFilter") || "";
 
+    let showCreatedAsDate = false;
     let allData = [];
     let sortState = { column: "", asc: true };
     const filterState = JSON.parse(localStorage.getItem("multiFilters") || '{"state":[],"type":[],"assignedTo":[],"project":[]}');
@@ -512,7 +513,11 @@
       <tr>
         <th onclick="sortBy('id')">ID</th>
         <th onclick="sortBy('title')">Title</th>
-        <th onclick="sortBy('createdDate')">Age</th>
+        <th onclick="sortBy('createdDate')">Age
+          <span onclick="toggleCreatedFormat(event)" style="cursor: pointer;" title="Toggle age format">
+            ${showCreatedAsDate ? '📅' : '🕒'}
+          </span>          
+        </th>
         <th>State<br>${getMultiSelectHTML("stateFilter", stateOptions, filterState.state)}</th>
         <th>Type<br>${getMultiSelectHTML("typeFilter", typeOptions, filterState.type)}</th>
         <th>Assigned To<br>${getMultiSelectHTML("assignedToFilter", assignedOptions, filterState.assignedTo)}</th>
@@ -542,16 +547,26 @@
 
           html += `<tr>
         <td><a href="${link}" target="_blank">${item.id}</a></td>
-<td class="${titleClass}" 
-    onclick="toggleInlineDescription(${item.id})"
-    onmouseover="showDescription(event, ${item.id})"
-    onmousemove="moveDescription(event)"
-    onmouseleave="hideDescription()"
-    style="cursor: pointer;"
-    title="Click to show/hide description below">
-  ${highlight(item.title, search)}
-</td>
-        <td title="${formatDateNL(item.createdDate)}">${item.createdDate ? timeAgo(item.createdDate) : "-"}</td>
+        <td class="${titleClass}" 
+            onclick="toggleInlineDescription(${item.id})"
+            onmouseover="showDescription(event, ${item.id})"
+            onmousemove="moveDescription(event)"
+            onmouseleave="hideDescription()"
+            style="cursor: pointer;"
+            title="Click to show/hide description below">
+          ${highlight(item.title, search)}
+        </td>
+        <td title="${
+          item.createdDate
+            ? (showCreatedAsDate ? timeAgo(item.createdDate) : formatDateNL(item.createdDate))
+            : '-'
+        }">
+          ${
+            item.createdDate
+              ? (showCreatedAsDate ? formatDateNL(item.createdDate) : timeAgo(item.createdDate))
+              : "-"
+          }
+        </td>
         <td class="${stateClass}">${highlight(item.state, search)}</td>
         <td class="${typeClass}">${highlight(item.type, search)}</td>
         <td>${highlight(item.assignedTo || "", search)}</td>
@@ -570,14 +585,21 @@
       tableContainer.innerHTML = html;
     }
 
-function formatDateNL(iso) {
-  const date = new Date(iso);
-  return new Intl.DateTimeFormat('nl-NL', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  }).format(date);
-}
+    function formatDateNL(iso) {
+      const date = new Date(iso);
+      return new Intl.DateTimeFormat('nl-NL', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }).format(date);
+    }
+
+    function toggleCreatedFormat(e) {
+      e.stopPropagation(); // prevent triggering the sort
+      showCreatedAsDate = !showCreatedAsDate;
+      filterWorkItems(); // re-render the table
+    }
+
 
     function showDescription(e, id) {
       const popup = document.getElementById("descPopup");
