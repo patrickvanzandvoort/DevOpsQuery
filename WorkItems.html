@@ -368,7 +368,7 @@
       <th>Type<br>${getMultiSelectHTML("typeFilter", typeOptions, filterState.type)}</th>
       <th>Assigned To<br>${getMultiSelectHTML("assignedToFilter", assignedOptions, filterState.assignedTo)}</th>
       <th>Project<br>${getMultiSelectHTML("projectFilter", projectOptions, filterState.project)}</th>
-      <th onclick="sortBy('lastUpdated')">Last Updated</th>
+      <th onclick="sortBy('lastUpdated')">Downloaded</th>
     </tr>
   </thead><tbody>`;
 
@@ -405,10 +405,12 @@
     function showDescription(e, id) {
       const popup = document.getElementById("descPopup");
       const item = allData.find(w => w.id === id);
-      popup.innerHTML = item?.description || "<em>No description</em>";
+      const search = filterInput.value.trim();
+      popup.innerHTML = item?.description ? highlight(item.description, search) : "<em>No description</em>";
       popup.style.display = "block";
       moveDescription(e);
     }
+
 
 
     function moveDescription(e) {
@@ -423,23 +425,23 @@
     }
 
 
-function filterWorkItems() {
-  const term = filterInput.value.trim().toLowerCase();
-  const filtered = allData.filter(w =>
-    (!term ||
-      w.title.toLowerCase().includes(term) ||
-      w.state.toLowerCase().includes(term) ||
-      w.type.toLowerCase().includes(term) ||
-      (w.assignedTo || "").toLowerCase().includes(term) ||
-      w.project.toLowerCase().includes(term) ||
-      w.description.toLowerCase().includes(term)) &&
-    (filterState.state.length === 0 || filterState.state.includes(w.state)) &&
-    (filterState.type.length === 0 || filterState.type.includes(w.type)) &&
-    (filterState.assignedTo.length === 0 || filterState.assignedTo.includes(w.assignedTo)) &&
-    (filterState.project.length === 0 || filterState.project.includes(w.project))
-  );
-  renderTable(filtered);
-}
+    function filterWorkItems() {
+      const term = filterInput.value.trim().toLowerCase();
+      const filtered = allData.filter(w =>
+        (!term ||
+          w.title.toLowerCase().includes(term) ||
+          w.state.toLowerCase().includes(term) ||
+          w.type.toLowerCase().includes(term) ||
+          (w.assignedTo || "").toLowerCase().includes(term) ||
+          w.project.toLowerCase().includes(term) ||
+          w.description.toLowerCase().includes(term)) &&
+        (filterState.state.length === 0 || filterState.state.includes(w.state)) &&
+        (filterState.type.length === 0 || filterState.type.includes(w.type)) &&
+        (filterState.assignedTo.length === 0 || filterState.assignedTo.includes(w.assignedTo)) &&
+        (filterState.project.length === 0 || filterState.project.includes(w.project))
+      );
+      renderTable(filtered);
+    }
 
 
     async function refreshWorkItem(id) {
