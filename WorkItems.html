@@ -611,10 +611,10 @@
             ${showCreatedAsDate ? '📅' : '🕒'}
           </span>          
         </th>
-        <th>State<br>${getMultiSelectHTML("stateFilter", stateOptions, filterState.state)}</th>
-        <th>Type<br>${getMultiSelectHTML("typeFilter", typeOptions, filterState.type)}</th>
-        <th>Assigned To<br>${getMultiSelectHTML("assignedToFilter", assignedOptions, filterState.assignedTo)}</th>
-        <th>Project<br>${getMultiSelectHTML("projectFilter", projectOptions, filterState.project)}</th>
+        <th onclick="sortBy('state')">State<br>${getMultiSelectHTML("stateFilter", stateOptions, filterState.state)}</th>
+        <th onclick="sortBy('type')">Type<br>${getMultiSelectHTML("typeFilter", typeOptions, filterState.type)}</th>
+        <th onclick="sortBy('assignedTo')">Assigned To<br>${getMultiSelectHTML("assignedToFilter", assignedOptions, filterState.assignedTo)}</th>
+        <th onclick="sortBy('project')">Project<br>${getMultiSelectHTML("projectFilter", projectOptions, filterState.project)}</th>
         <th onclick="refreshVisibleWorkItems()" title="Click to refresh/download all visible work items.">Downloaded 🔄</th>
       </tr>
     </thead><tbody>`;
