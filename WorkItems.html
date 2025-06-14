@@ -251,6 +251,32 @@
       border-left: 4px solid #7f8c8d;
       /* gray */
     }
+
+    .state-border-New {
+      border-left: 4px solid #a0a0a0;
+    }
+
+    .state-border-Active,
+    .state-border-InProgress {
+      border-left: 4px solid #0078d4;
+    }
+
+    .state-border-Resolved {
+      border-left: 4px solid #8a2da5;
+    }
+
+    .state-border-Closed,
+    .state-border-Done {
+      border-left: 4px solid #107c10;
+    }
+
+    .state-border-Removed {
+      border-left: 4px solid #d13438;
+    }
+
+    .state-border-Default {
+      border-left: 4px solid #888;
+    }
   </style>
 </head>
 
@@ -390,30 +416,30 @@
       sortState.column = column;
       filterWorkItems();
     }
-function renderTable(data) {
-  const stateOptions = getDistinct("state");
-  const typeOptions = getDistinct("type");
-  const assignedOptions = getDistinct("assignedTo");
-  const projectOptions = getDistinct("project");
+    function renderTable(data) {
+      const stateOptions = getDistinct("state");
+      const typeOptions = getDistinct("type");
+      const assignedOptions = getDistinct("assignedTo");
+      const projectOptions = getDistinct("project");
 
-  const search = filterInput.value.trim().toLowerCase();
+      const search = filterInput.value.trim().toLowerCase();
 
-  if (sortState.column && sortState.column !== "lastUpdated") {
-    data = data.slice().sort((a, b) => {
-      const v1 = a[sortState.column];
-      const v2 = b[sortState.column];
+      if (sortState.column && sortState.column !== "lastUpdated") {
+        data = data.slice().sort((a, b) => {
+          const v1 = a[sortState.column];
+          const v2 = b[sortState.column];
 
-      if (sortState.column === "id") {
-        return sortState.asc ? v1 - v2 : v2 - v1;
+          if (sortState.column === "id") {
+            return sortState.asc ? v1 - v2 : v2 - v1;
+          }
+
+          const s1 = (v1 || "").toString().toLowerCase();
+          const s2 = (v2 || "").toString().toLowerCase();
+          return sortState.asc ? s1.localeCompare(s2) : s2.localeCompare(s1);
+        });
       }
 
-      const s1 = (v1 || "").toString().toLowerCase();
-      const s2 = (v2 || "").toString().toLowerCase();
-      return sortState.asc ? s1.localeCompare(s2) : s2.localeCompare(s1);
-    });
-  }
-
-  let html = `<table>
+      let html = `<table>
     <thead>
       <tr>
         <th onclick="sortBy('id')">ID</th>
@@ -426,22 +452,26 @@ function renderTable(data) {
       </tr>
     </thead><tbody>`;
 
-  if (data.length === 0) {
-    html += `<tr><td colspan="7" style="text-align:center;color:#888;">No matching work items</td></tr>`;
-  } else {
-    for (const item of data) {
-      const link = `${getBaseUrl()}/${item.project}/_workitems/edit/${item.id}`;
-      const updatedText = item.lastUpdated ? timeAgo(item.lastUpdated) : "-";
+      if (data.length === 0) {
+        html += `<tr><td colspan="7" style="text-align:center;color:#888;">No matching work items</td></tr>`;
+      } else {
+        for (const item of data) {
+          const link = `${getBaseUrl()}/${item.project}/_workitems/edit/${item.id}`;
+          const updatedText = item.lastUpdated ? timeAgo(item.lastUpdated) : "-";
 
-      const descMatch = search && item.description.toLowerCase().includes(search);
-      const titleClass = descMatch ? 'desc-match-border' : '';
+          const descMatch = search && item.description.toLowerCase().includes(search);
+          const titleClass = descMatch ? 'desc-match-border' : '';
 
-      const safeType = (item.type || "").replace(/\s+/g, "");
-      const typeClass = `type-border-${safeType || 'Default'}`;
+          const safeType = (item.type || "").replace(/\s+/g, "");
+          const typeClass = `type-border-${safeType || 'Default'}`;
 
-      const descHtml = item.description ? highlight(item.description, search) : "<em>No description</em>";
+          const safeState = (item.state || "").replace(/\s+/g, "");
+          const stateClass = `state-border-${safeState || 'Default'}`;
 
-      html += `<tr>
+
+          const descHtml = item.description ? highlight(item.description, search) : "<em>No description</em>";
+
+          html += `<tr>
         <td><a href="${link}" target="_blank">${item.id}</a></td>
 <td class="${titleClass}" 
     onclick="toggleInlineDescription(${item.id})"
@@ -453,7 +483,7 @@ function renderTable(data) {
   ${highlight(item.title, search)}
 </td>
 
-        <td>${highlight(item.state, search)}</td>
+        <td class="${stateClass}">${highlight(item.state, search)}</td>
         <td class="${typeClass}">${highlight(item.type, search)}</td>
         <td>${highlight(item.assignedTo || "", search)}</td>
         <td>${highlight(item.project, search)}</td>
@@ -464,12 +494,12 @@ function renderTable(data) {
           ${descHtml}
         </td>
       </tr>`;
-    }
-  }
+        }
+      }
 
-  html += `</tbody></table>`;
-  tableContainer.innerHTML = html;
-}
+      html += `</tbody></table>`;
+      tableContainer.innerHTML = html;
+    }
 
     function showDescription(e, id) {
       const popup = document.getElementById("descPopup");
