@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DevOps Work Items Viewer</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 1em;
+      background: #1e1e1e;
+      color: #ddd;
+      margin: 0;
+    }
+    input, select, button {
+      padding: 0.5em;
+      margin: 0.5em 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1em;
+      background: #2b2b2b;
+    }
+    th, td {
+      padding: 0.5em;
+      border: 1px solid #444;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background-color: #333;
+      color: #eee;
+      cursor: pointer;
+    }
+    tr:nth-child(even) {
+      background-color: #262626;
+    }
+    a {
+      color: #4da6ff;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .refreshable {
+      color: #4da6ff;
+      cursor: pointer;
+    }
+    .refreshable:hover {
+      text-decoration: underline;
+    }
+    .highlight {
+      background: yellow;
+      color: black;
+    }
+    label.checkbox {
+      display: block;
+      margin: 0.5em 0;
+    }
+    .action-pane {
+      background: #2b2b2b;
+      border: 1px solid #444;
+      border-radius: 6px;
+      margin-bottom: 1em;
+      overflow: hidden;
+      transition: max-height 0.4s ease-out;
+    }
+    .action-pane-content {
+      padding: 1em;
+      display: none;
+    }
+    .hamburger {
+      font-size: 1.5em;
+      background: none;
+      border: none;
+      color: #ddd;
+      cursor: pointer;
+      margin: 0.5em;
+      display: inline-block;
+    }
+    .hamburger:hover {
+      color: #fff;
+    }
+    .header-bar {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5em;
+    }
+    .header-bar h2 {
+      flex: 1;
+      margin: 0;
+      padding-left: 0.5em;
+    }
+    .status-bar {
+      flex-shrink: 0;
+      margin-right: 1em;
+      font-size: 0.9em;
+      color: #aaa;
+    }
+    .dropdown-container {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+    .dropdown-toggle {
+      background: #333;
+      color: #eee;
+      padding: 0.25em 0.5em;
+      cursor: pointer;
+      border: 1px solid #444;
+      border-radius: 4px;
+      font-size: 0.85em;
+      width: 100%;
+      text-align: left;
+    }
+    .dropdown-toggle:hover {
+      background: #444;
+    }
+    .dropdown-panel {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: #1e1e1e;
+      border: 1px solid #444;
+      z-index: 999;
+      padding: 0.5em;
+      max-height: 200px;
+      overflow-y: auto;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .dropdown-panel label {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      font-size: 0.9em;
+      padding: 0.3em 0.25em;
+      border-bottom: 1px solid #333;
+    }
+    .dropdown-panel label:last-child {
+      border-bottom: none;
+    }
+    .filter-bar {
+      margin: 0.5em 0;
+    }
+    .filter-bar input {
+      width: 100%;
+      padding: 0.5em;
+      font-size: 1em;
+      background: #2b2b2b;
+      border: 1px solid #444;
+      color: #eee;
+      border-radius: 4px;
+    }
+    .description-popup {
+      position: absolute;
+      z-index: 9999;
+      background: #333;
+      color: #eee;
+      border: 1px solid #666;
+      padding: 1em;
+      max-width: 400px;
+      max-height: 300px;
+      overflow: auto;
+      border-radius: 4px;
+      display: none;
+      font-size: 0.9em;
+    }    
+        
+  </style>
+</head>
+<body>
+
+<div class="header-bar">
+  <button class="hamburger" onclick="togglePane()">☰</button>
+  <h2>DevOps Work Items</h2>
+  <div class="status-bar" id="statusBar"></div>
+</div>
+
+<div class="action-pane" id="actionPane" style="max-height: 0;">
+  <div class="action-pane-content" id="actionPaneContent">
+    <label>DevOps URL</label>
+    <input id="url" placeholder="https://dev.azure.com/yourorg" />
+    <label>Personal Access Token (PAT)</label>
+    <input id="pat" type="password" placeholder="your PAT" />
+    <label class="checkbox">
+      <input type="checkbox" id="includeCompleted" /> Include completed work items
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" id="onlyAssignedToMe" /> Only show work items assigned to me
+    </label>
+    <button onclick="loadAllWorkItems()">Fetch & Cache Work Items</button>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <input id="filter" placeholder="🔍 Filter work items..." oninput="onSearchChange()" />
+</div>
+
+<div id="table-container">No data loaded yet.</div>
+
+<script>
+  const urlInput = document.getElementById("url");
+  const patInput = document.getElementById("pat");
+  const filterInput = document.getElementById("filter");
+  const includeCompletedCheckbox = document.getElementById("includeCompleted");
+  const onlyAssignedToMeCheckbox = document.getElementById("onlyAssignedToMe");
+  const tableContainer = document.getElementById("table-container");
+  const actionPane = document.getElementById("actionPane");
+  const actionPaneContent = document.getElementById("actionPaneContent");
+  const statusBar = document.getElementById("statusBar");
+
+  urlInput.value = localStorage.getItem("devopsUrl") || "https://dev.azure.com/promentum";
+  patInput.value = localStorage.getItem("devopsPat") || "";
+  includeCompletedCheckbox.checked = JSON.parse(localStorage.getItem("includeCompleted") || "false");
+  onlyAssignedToMeCheckbox.checked = JSON.parse(localStorage.getItem("onlyAssignedToMe") || "false");
+  filterInput.value = localStorage.getItem("textFilter") || "";
+
+  let allData = [];
+  let sortState = { column: "", asc: true };
+  const filterState = JSON.parse(localStorage.getItem("multiFilters") || '{"state":[],"type":[],"assignedTo":[],"project":[]}');
+
+  function saveFilterState() {
+    localStorage.setItem("multiFilters", JSON.stringify(filterState));
+    localStorage.setItem("textFilter", filterInput.value.trim());
+  }
+
+  function togglePane() {
+    const isOpen = actionPaneContent.style.display === "block";
+    actionPane.style.maxHeight = isOpen ? "0" : "800px";
+    actionPaneContent.style.display = isOpen ? "none" : "block";
+  }
+
+  function getBaseUrl() {
+    return urlInput.value.trim().replace(/\/$/, "");
+  }
+
+  function getDistinct(field) {
+    return [...new Set(allData.map(w => w[field] || "").filter(Boolean))].sort();
+  }
+
+  function timeAgo(iso) {
+    const date = new Date(iso);
+    const now = new Date();
+    const diff = Math.floor((now - date) / 1000);
+    if (diff < 60) return "just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+    if (diff < 86400 && date.getDate() === now.getDate()) return "today";
+    if (diff < 172800 && date.getDate() === now.getDate() - 1) return "yesterday";
+    return date.toLocaleString();
+  }
+
+  function getMultiSelectHTML(id, options, selectedValues) {
+    const label = selectedValues.length ? selectedValues.join(", ") : "(All)";
+    return `
+      <div class="dropdown-container">
+        <div class="dropdown-toggle" onclick="toggleDropdown('${id}')">${label}</div>
+        <div class="dropdown-panel" id="${id}">
+          ${options.map(opt => `
+            <label>
+              <input type="checkbox" value="${opt}" ${selectedValues.includes(opt) ? 'checked' : ''} onchange="onMultiFilterChange('${id}')"/> ${opt}
+            </label>`).join("")}
+        </div>
+      </div>`;
+  }
+
+  function toggleDropdown(id) {
+    const panel = document.getElementById(id);
+    document.querySelectorAll('.dropdown-panel').forEach(p => {
+      if (p !== panel) p.style.display = 'none';
+    });
+    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+  }
+
+  window.addEventListener("click", e => {
+    if (!e.target.closest(".dropdown-container")) {
+      document.querySelectorAll(".dropdown-panel").forEach(p => p.style.display = "none");
+    }
+  });
+
+  function onMultiFilterChange(id) {
+    const checkboxes = document.querySelectorAll(`#${id} input[type=checkbox]:checked`);
+    const values = Array.from(checkboxes).map(cb => cb.value);
+    if (id === "stateFilter") filterState.state = values;
+    else if (id === "typeFilter") filterState.type = values;
+    else if (id === "assignedToFilter") filterState.assignedTo = values;
+    else if (id === "projectFilter") filterState.project = values;
+    saveFilterState();
+    filterWorkItems();
+  }
+
+  function highlight(text, term) {
+    if (!term) return text;
+    const escaped = term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    return text.replace(new RegExp(escaped, "gi"), match => `<span class="highlight">${match}</span>`);
+  }
+
+  function onSearchChange() {
+    saveFilterState();
+    filterWorkItems();
+  }
+
+  function sortBy(column) {
+    sortState.asc = sortState.column === column ? !sortState.asc : true;
+    sortState.column = column;
+    filterWorkItems();
+  }
+function renderTable(data) {
+  const stateOptions = getDistinct("state");
+  const typeOptions = getDistinct("type");
+  const assignedOptions = getDistinct("assignedTo");
+  const projectOptions = getDistinct("project");
+
+  const search = filterInput.value.trim().toLowerCase();
+  const popup = document.getElementById("descPopup");
+
+  if (sortState.column) {
+    data = data.slice().sort((a, b) => {
+      const v1 = (a[sortState.column] || "").toString().toLowerCase();
+      const v2 = (b[sortState.column] || "").toString().toLowerCase();
+      return sortState.asc ? v1.localeCompare(v2) : v2.localeCompare(v1);
+    });
+  }
+
+  let html = `<table>
+    <thead>
+      <tr>
+        <th onclick="sortBy('id')">ID</th>
+        <th onclick="sortBy('title')">Title</th>
+        <th>State<br>${getMultiSelectHTML("stateFilter", stateOptions, filterState.state)}</th>
+        <th>Type<br>${getMultiSelectHTML("typeFilter", typeOptions, filterState.type)}</th>
+        <th>Assigned To<br>${getMultiSelectHTML("assignedToFilter", assignedOptions, filterState.assignedTo)}</th>
+        <th>Project<br>${getMultiSelectHTML("projectFilter", projectOptions, filterState.project)}</th>
+        <th onclick="sortBy('lastUpdated')">Last Updated</th>
+      </tr>
+    </thead><tbody>`;
+
+  if (data.length === 0) {
+    html += `<tr><td colspan="7" style="text-align:center;color:#888;">No matching work items</td></tr>`;
+  } else {
+    for (const item of data) {
+      const link = `${getBaseUrl()}/${item.project}/_workitems/edit/${item.id}`;
+      const updatedText = item.lastUpdated ? timeAgo(item.lastUpdated) : "-";
+
+      html += `<tr>
+        <td><a href="${link}" target="_blank">${item.id}</a></td>
+         <td onmouseover="showDescription(event, ${item.id})"
+            onmousemove="moveDescription(event)"
+            onmouseleave="hideDescription()">
+          ${highlight(item.title, search)}
+        </td>
+        <td>${highlight(item.state, search)}</td>
+        <td>${highlight(item.type, search)}</td>
+        <td>${highlight(item.assignedTo || "", search)}</td>
+        <td>${highlight(item.project, search)}</td>
+        <td><span class="refreshable" onclick="refreshWorkItem(${item.id})">${updatedText}</span></td>
+      </tr>`;
+    }
+  }
+
+  html += `</tbody></table>`;
+  tableContainer.innerHTML = html;
+}
+function showDescription(e, id) {
+  const popup = document.getElementById("descPopup");
+  const item = allData.find(w => w.id === id);
+  popup.innerHTML = item?.description || "<em>No description</em>";
+  popup.style.display = "block";
+  moveDescription(e);
+}
+
+
+function moveDescription(e) {
+  const popup = document.getElementById("descPopup");
+  popup.style.left = e.pageX + 15 + "px";
+  popup.style.top = e.pageY + 15 + "px";
+}
+
+function hideDescription() {
+  const popup = document.getElementById("descPopup");
+  popup.style.display = "none";
+}
+
+
+  function filterWorkItems() {
+    const term = filterInput.value.trim().toLowerCase();
+    const filtered = allData.filter(w =>
+      (!term ||
+        w.title.toLowerCase().includes(term) ||
+        w.state.toLowerCase().includes(term) ||
+        w.type.toLowerCase().includes(term) ||
+        (w.assignedTo || "").toLowerCase().includes(term) ||
+        w.project.toLowerCase().includes(term)) &&
+      (filterState.state.length === 0 || filterState.state.includes(w.state)) &&
+      (filterState.type.length === 0 || filterState.type.includes(w.type)) &&
+      (filterState.assignedTo.length === 0 || filterState.assignedTo.includes(w.assignedTo)) &&
+      (filterState.project.length === 0 || filterState.project.includes(w.project))
+    );
+    renderTable(filtered);
+  }
+
+  async function refreshWorkItem(id) {
+    const pat = patInput.value.trim();
+    const authHeader = "Basic " + btoa(":" + pat);
+    try {
+      const res = await fetch(`${getBaseUrl()}/_apis/wit/workitems/${id}?api-version=7.0`, {
+        headers: { Authorization: authHeader }
+      });
+      const item = await res.json();
+const updated = {
+  id: item.id,
+  description: item.fields["System.Description"] || "",
+  project: item.fields["System.TeamProject"],
+  title: item.fields["System.Title"],
+  state: item.fields["System.State"],
+  type: item.fields["System.WorkItemType"],
+  assignedTo: item.fields["System.AssignedTo"]?.displayName || "",
+  lastUpdated: new Date().toISOString()
+};
+
+      const dict = {};
+      [...allData, updated].forEach(i => dict[i.id] = i);
+      allData = Object.values(dict);
+      localStorage.setItem("devopsWorkItems", JSON.stringify(allData));
+      filterWorkItems();
+    } catch (err) {
+      alert("Failed to refresh item: " + err);
+    }
+  }
+
+  async function loadAllWorkItems() {
+    const orgUrl = getBaseUrl();
+    const pat = patInput.value.trim();
+    const includeCompleted = includeCompletedCheckbox.checked;
+    const onlyAssignedToMe = onlyAssignedToMeCheckbox.checked;
+    const authHeader = "Basic " + btoa(":" + pat);
+
+    if (!orgUrl || !pat) {
+      alert("Please enter both a URL and PAT");
+      return;
+    }
+
+    localStorage.setItem("devopsUrl", orgUrl);
+    localStorage.setItem("devopsPat", pat);
+    localStorage.setItem("includeCompleted", JSON.stringify(includeCompleted));
+    localStorage.setItem("onlyAssignedToMe", JSON.stringify(onlyAssignedToMe));
+
+    try {
+      const projRes = await fetch(`${orgUrl}/_apis/projects?api-version=7.0`, {
+        headers: { Authorization: authHeader }
+      });
+      const projects = (await projRes.json()).value;
+
+      let allWorkItemIds = [];
+      for (const project of projects) {
+        statusBar.textContent = `Querying ${project.name}...`;
+
+        let query = "SELECT [System.Id] FROM WorkItems";
+        const filters = [];
+        if (!includeCompleted) {
+          filters.push("[System.State] <> 'Closed'");
+          filters.push("[System.State] <> 'Done'");
+        }
+        if (onlyAssignedToMe) {
+          filters.push("[System.AssignedTo] = @Me");
+        }
+        if (filters.length) query += " WHERE " + filters.join(" AND ");
+        query += " ORDER BY [System.ChangedDate] DESC";
+
+        const queryRes = await fetch(`${orgUrl}/${project.name}/_apis/wit/wiql?api-version=7.0`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: authHeader
+          },
+          body: JSON.stringify({ query })
+        });
+
+        const queryData = await queryRes.json();
+        const ids = (queryData.workItems || []).map(w => w.id);
+        allWorkItemIds = allWorkItemIds.concat(ids);
+      }
+
+      const newItems = [];
+      for (let i = 0; i < allWorkItemIds.length; i += 100) {
+        const batch = allWorkItemIds.slice(i, i + 100);
+        const itemsRes = await fetch(`${orgUrl}/_apis/wit/workitems?ids=${batch.join(",")}&api-version=7.0`, {
+          headers: { Authorization: authHeader }
+        });
+        const batchItems = await itemsRes.json();
+        newItems.push(...batchItems.value);
+      }
+
+      const now = new Date().toISOString();
+      const simplifiedNew = newItems.map(i => ({
+        id: i.id,
+        description: i.fields["System.Description"] || "",
+        project: i.fields["System.TeamProject"],
+        title: i.fields["System.Title"],
+        state: i.fields["System.State"],
+        type: i.fields["System.WorkItemType"],
+        assignedTo: i.fields["System.AssignedTo"]?.displayName || "",
+        lastUpdated: now
+      }));
+
+      const existing = JSON.parse(localStorage.getItem("devopsWorkItems") || "[]");
+      const merged = {};
+      [...existing, ...simplifiedNew].forEach(i => merged[i.id] = i);
+      allData = Object.values(merged);
+      localStorage.setItem("devopsWorkItems", JSON.stringify(allData));
+      statusBar.textContent = "Download complete.";
+      filterWorkItems();
+    } catch (err) {
+      tableContainer.innerHTML = `<pre>Error:\n${err}</pre>`;
+      statusBar.textContent = "Failed.";
+      console.error(err);
+    }
+  }
+
+  const cached = localStorage.getItem("devopsWorkItems");
+  if (cached) {
+    allData = JSON.parse(cached);
+    filterWorkItems();
+  }
+</script>
+<div id="descPopup" class="description-popup"></div>
+
+</body>
+</html>
+
