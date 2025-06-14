@@ -419,10 +419,14 @@
       const now = new Date();
       const diff = Math.floor((now - date) / 1000);
       if (diff < 60) return "just now";
-      if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+      if (diff < 3600) return `${Math.floor(diff / 60)} min`;
       if (diff < 86400 && date.getDate() === now.getDate()) return "today";
       if (diff < 172800 && date.getDate() === now.getDate() - 1) return "yesterday";
-      return date.toLocaleString();
+
+      const days = Math.floor(diff / 86400);
+      if (days < 30) return `${days} day${days === 1 ? '' : 's'}`;
+      const months = Math.floor(days / 30);
+      return `${months} month${months === 1 ? '' : 's'}`;
     }
 
     function getMultiSelectHTML(id, options, selectedValues) {
@@ -508,16 +512,17 @@
       <tr>
         <th onclick="sortBy('id')">ID</th>
         <th onclick="sortBy('title')">Title</th>
+        <th onclick="sortBy('createdDate')">Age</th>
         <th>State<br>${getMultiSelectHTML("stateFilter", stateOptions, filterState.state)}</th>
         <th>Type<br>${getMultiSelectHTML("typeFilter", typeOptions, filterState.type)}</th>
         <th>Assigned To<br>${getMultiSelectHTML("assignedToFilter", assignedOptions, filterState.assignedTo)}</th>
         <th>Project<br>${getMultiSelectHTML("projectFilter", projectOptions, filterState.project)}</th>
-        <th onclick="refreshVisibleWorkItems()" title="Click to refresh/download all visible work items.">Last Updated 🔄</th>
+        <th onclick="refreshVisibleWorkItems()" title="Click to refresh/download all visible work items.">Downloaded 🔄</th>
       </tr>
     </thead><tbody>`;
 
       if (data.length === 0) {
-        html += `<tr><td colspan="7" style="text-align:center;color:#888;">No matching work items</td></tr>`;
+        html += `<tr><td colspan="8" style="text-align:center;color:#888;">No matching work items</td></tr>`;
       } else {
         for (const item of data) {
           const link = `${getBaseUrl()}/${item.project}/_workitems/edit/${item.id}`;
@@ -546,7 +551,7 @@
     title="Click to show/hide description below">
   ${highlight(item.title, search)}
 </td>
-
+        <td title="${formatDateNL(item.createdDate)}">${item.createdDate ? timeAgo(item.createdDate) : "-"}</td>
         <td class="${stateClass}">${highlight(item.state, search)}</td>
         <td class="${typeClass}">${highlight(item.type, search)}</td>
         <td>${highlight(item.assignedTo || "", search)}</td>
@@ -564,6 +569,15 @@
       html += `</tbody></table>`;
       tableContainer.innerHTML = html;
     }
+
+function formatDateNL(iso) {
+  const date = new Date(iso);
+  return new Intl.DateTimeFormat('nl-NL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  }).format(date);
+}
 
     function showDescription(e, id) {
       const popup = document.getElementById("descPopup");
@@ -636,7 +650,8 @@
           state: item.fields["System.State"],
           type: item.fields["System.WorkItemType"],
           assignedTo: item.fields["System.AssignedTo"]?.displayName || "",
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
+          createdDate: item.fields["System.CreatedDate"]
         };
 
         const dict = {};
@@ -645,7 +660,7 @@
         localStorage.setItem("devopsWorkItems", JSON.stringify(allData));
         filterWorkItems();
       } catch (err) {
-        alert("Failed to refresh item: " + err);
+        console.log("Failed to refresh item: " + err);
       }
     }
 
@@ -767,6 +782,7 @@
           state: i.fields["System.State"],
           type: i.fields["System.WorkItemType"],
           assignedTo: i.fields["System.AssignedTo"]?.displayName || "",
+          createdDate: i.fields["System.CreatedDate"],
           lastUpdated: now
         }));
 
