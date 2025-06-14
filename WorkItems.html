@@ -229,17 +229,47 @@
     }
 
     .filter-bar {
+      display: flex;
+      gap: 0.5em;
+      align-items: center;
       margin: 0.5em 0;
     }
 
     .filter-bar input {
-      width: 100%;
+      flex: 1;
+      min-width: 0;
       padding: 0.5em;
       font-size: 1em;
       background: var(--table-bg);
       border: 1px solid var(--border-color);
       color: var(--text-color);
       border-radius: 4px;
+    }
+
+    .filter-bar button {
+      flex: 0;
+      white-space: nowrap;
+      padding: 0.5em 1em;
+      font-size: 0.9em;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: var(--table-alt);
+      color: var(--text-color);
+      cursor: pointer;
+    }
+
+    .clear-filters {
+      margin-left: .5em;
+      padding: .4em .8em;
+      font-size: .85em;
+      cursor: pointer;
+      background: var(--table-alt);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+    }
+
+    .clear-filters:hover {
+      background: var(--border-color);
     }
 
     .desc-match-border {
@@ -360,6 +390,8 @@
 
   <div class="filter-bar">
     <input id="filter" placeholder="🔍 Filter work items..." oninput="onSearchChange()" />
+    <!-- NEW: clear-filters button -->
+    <button class="clear-filters" onclick="clearAllFilters()" title="Reset all filters">✖️ Clear all</button>
   </div>
 
   <div id="table-container">No data loaded yet.</div>
@@ -406,6 +438,22 @@
     function flushUI() {
       return new Promise(resolve => requestAnimationFrame(resolve));
     }
+
+    function clearAllFilters() {
+      // reset UI controls
+      filterInput.value = "";
+      filterState.state = [];
+      filterState.type = [];
+      filterState.assignedTo = [];
+      filterState.project = [];
+
+      // update localStorage
+      localStorage.setItem("textFilter", "");
+      localStorage.setItem("multiFilters", JSON.stringify(filterState));
+
+      filterWorkItems();          // re-render table
+    }
+
 
     function getBaseUrl() {
       return urlInput.value.trim().replace(/\/$/, "");
