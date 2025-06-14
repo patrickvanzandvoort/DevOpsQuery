@@ -211,6 +211,12 @@
       font-size: 0.9em;
     }
 
+    .desc-inline-row td {
+      background: #1a1a1a;
+      border-top: none;
+    }
+
+
     .type-border-Bug {
       border-left: 4px solid #ff1900;
       /* red */
@@ -384,74 +390,86 @@
       sortState.column = column;
       filterWorkItems();
     }
-    function renderTable(data) {
-      const stateOptions = getDistinct("state");
-      const typeOptions = getDistinct("type");
-      const assignedOptions = getDistinct("assignedTo");
-      const projectOptions = getDistinct("project");
+function renderTable(data) {
+  const stateOptions = getDistinct("state");
+  const typeOptions = getDistinct("type");
+  const assignedOptions = getDistinct("assignedTo");
+  const projectOptions = getDistinct("project");
 
-      const search = filterInput.value.trim().toLowerCase();
+  const search = filterInput.value.trim().toLowerCase();
 
-      if (sortState.column) {
-        data = data.slice().sort((a, b) => {
-          const v1 = a[sortState.column];
-          const v2 = b[sortState.column];
+  if (sortState.column && sortState.column !== "lastUpdated") {
+    data = data.slice().sort((a, b) => {
+      const v1 = a[sortState.column];
+      const v2 = b[sortState.column];
 
-          if (sortState.column === "id") {
-            return sortState.asc ? v1 - v2 : v2 - v1;
-          }
-
-          const s1 = (v1 || "").toString().toLowerCase();
-          const s2 = (v2 || "").toString().toLowerCase();
-          return sortState.asc ? s1.localeCompare(s2) : s2.localeCompare(s1);
-
-        });
+      if (sortState.column === "id") {
+        return sortState.asc ? v1 - v2 : v2 - v1;
       }
 
-      let html = `<table>
-  <thead>
-    <tr>
-      <th onclick="sortBy('id')">ID</th>
-      <th onclick="sortBy('title')">Title</th>
-      <th>State<br>${getMultiSelectHTML("stateFilter", stateOptions, filterState.state)}</th>
-      <th>Type<br>${getMultiSelectHTML("typeFilter", typeOptions, filterState.type)}</th>
-      <th>Assigned To<br>${getMultiSelectHTML("assignedToFilter", assignedOptions, filterState.assignedTo)}</th>
-      <th>Project<br>${getMultiSelectHTML("projectFilter", projectOptions, filterState.project)}</th>
-      <th onclick="refreshVisibleWorkItems()" title="Click to refresh/download all visible work items.">Downloaded 🔄</th>
-    </tr>
-  </thead><tbody>`;
+      const s1 = (v1 || "").toString().toLowerCase();
+      const s2 = (v2 || "").toString().toLowerCase();
+      return sortState.asc ? s1.localeCompare(s2) : s2.localeCompare(s1);
+    });
+  }
 
-      if (data.length === 0) {
-        html += `<tr><td colspan="7" style="text-align:center;color:#888;">No matching work items</td></tr>`;
-      } else {
-        for (const item of data) {
-          const link = `${getBaseUrl()}/${item.project}/_workitems/edit/${item.id}`;
-          const updatedText = item.lastUpdated ? timeAgo(item.lastUpdated) : "-";
-          const descMatch = search && item.description.toLowerCase().includes(search);
-          const titleClass = descMatch ? 'desc-match-border' : '';
-          const safeType = (item.type || "").replace(/\s+/g, "");
-          const typeClass = `type-border-${safeType || 'Default'}`;
+  let html = `<table>
+    <thead>
+      <tr>
+        <th onclick="sortBy('id')">ID</th>
+        <th onclick="sortBy('title')">Title</th>
+        <th>State<br>${getMultiSelectHTML("stateFilter", stateOptions, filterState.state)}</th>
+        <th>Type<br>${getMultiSelectHTML("typeFilter", typeOptions, filterState.type)}</th>
+        <th>Assigned To<br>${getMultiSelectHTML("assignedToFilter", assignedOptions, filterState.assignedTo)}</th>
+        <th>Project<br>${getMultiSelectHTML("projectFilter", projectOptions, filterState.project)}</th>
+        <th onclick="refreshVisibleWorkItems()" title="Click to refresh/download all visible work items.">Last Updated 🔄</th>
+      </tr>
+    </thead><tbody>`;
 
-          html += `<tr>
-      <td><a href="${link}" target="_blank">${item.id}</a></td>
-      <td class="${titleClass}"
-          onmouseover="showDescription(event, ${item.id})"
-          onmousemove="moveDescription(event)"
-          onmouseleave="hideDescription()">
-        ${highlight(item.title, search)}
-      </td>
-      <td>${highlight(item.state, search)}</td>
-      <td class="${typeClass}">${highlight(item.type, search)}</td>
-      <td>${highlight(item.assignedTo || "", search)}</td>
-      <td>${highlight(item.project, search)}</td>
-      <td><span class="refreshable" onclick="refreshWorkItem(${item.id})">${updatedText}</span></td>
-    </tr>`;
-        }
-      }
+  if (data.length === 0) {
+    html += `<tr><td colspan="7" style="text-align:center;color:#888;">No matching work items</td></tr>`;
+  } else {
+    for (const item of data) {
+      const link = `${getBaseUrl()}/${item.project}/_workitems/edit/${item.id}`;
+      const updatedText = item.lastUpdated ? timeAgo(item.lastUpdated) : "-";
 
-      html += `</tbody></table>`;
-      tableContainer.innerHTML = html;
+      const descMatch = search && item.description.toLowerCase().includes(search);
+      const titleClass = descMatch ? 'desc-match-border' : '';
+
+      const safeType = (item.type || "").replace(/\s+/g, "");
+      const typeClass = `type-border-${safeType || 'Default'}`;
+
+      const descHtml = item.description ? highlight(item.description, search) : "<em>No description</em>";
+
+      html += `<tr>
+        <td><a href="${link}" target="_blank">${item.id}</a></td>
+<td class="${titleClass}" 
+    onclick="toggleInlineDescription(${item.id})"
+    onmouseover="showDescription(event, ${item.id})"
+    onmousemove="moveDescription(event)"
+    onmouseleave="hideDescription()"
+    style="cursor: pointer;"
+    title="Click to show/hide description below">
+  ${highlight(item.title, search)}
+</td>
+
+        <td>${highlight(item.state, search)}</td>
+        <td class="${typeClass}">${highlight(item.type, search)}</td>
+        <td>${highlight(item.assignedTo || "", search)}</td>
+        <td>${highlight(item.project, search)}</td>
+        <td><span class="refreshable" onclick="refreshWorkItem(${item.id})">${updatedText}</span></td>
+      </tr>
+      <tr id="desc-inline-${item.id}" class="desc-inline-row" style="display: none;">
+        <td colspan="7" style="padding: 0.5em 1em; color: #ccc; font-size: 0.9em; border-top: none;">
+          ${descHtml}
+        </td>
+      </tr>`;
     }
+  }
+
+  html += `</tbody></table>`;
+  tableContainer.innerHTML = html;
+}
 
     function showDescription(e, id) {
       const popup = document.getElementById("descPopup");
@@ -538,6 +556,12 @@
       statusBar.textContent = `Refreshed ${ids.length} visible work items.`;
     }
 
+    function toggleInlineDescription(id) {
+      const row = document.getElementById(`desc-inline-${id}`);
+      if (row) {
+        row.style.display = row.style.display === "none" ? "table-row" : "none";
+      }
+    }
 
     async function loadAllWorkItems() {
       const orgUrl = getBaseUrl();
