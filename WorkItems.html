@@ -243,6 +243,38 @@
       border-bottom: none;
     }
 
+    .timer-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3em;
+      white-space: nowrap;
+    }
+
+    .timer-btn {
+      font-size: 0.75em;
+      padding: 0.2em 0.4em;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: var(--table-alt);
+      color: var(--text-color);
+      cursor: pointer;
+    }
+
+    .timer-btn:hover {
+      background: var(--hover-color);
+    }
+
+    .timer-btn.play {
+      background-color: #28a745; /* green */
+      border-color: #28a745;
+    }
+
+    .timer-btn.stop {
+      background-color: #dc3545; /* red */
+      border-color: #dc3545;
+    }
+
+
     .filter-bar {
       display: flex;
       gap: 0.5em;
@@ -493,6 +525,107 @@
       return `${months} month${months === 1 ? '' : 's'}`;
     }
 
+    const activeTimers = {};
+
+    function loadTimersFromStorage() {
+      const logs = JSON.parse(localStorage.getItem("timelogs") || "{}");
+      for (const id in logs) {
+        const sessions = logs[id];
+        const last = sessions[sessions.length - 1];
+        if (last && last.end === undefined) {
+          activeTimers[id] = { start: last.start };
+        }
+      }
+    }
+
+    function startTimer(id) {
+      if (activeTimers[id]) return;
+      const now = new Date().toISOString();
+      const logs = JSON.parse(localStorage.getItem("timelogs") || "{}");
+      if (!logs[id]) logs[id] = [];
+      logs[id].push({ start: now });
+      localStorage.setItem("timelogs", JSON.stringify(logs));
+      activeTimers[id] = { start: now };
+      updateTimerButtons(id);
+    }
+
+    function stopTimer(id) {
+      const logs = JSON.parse(localStorage.getItem("timelogs") || "{}");
+      const sessions = logs[id] || [];
+      const last = sessions[sessions.length - 1];
+      if (last && !last.end) {
+        last.end = new Date().toISOString();
+        logs[id] = sessions;
+        localStorage.setItem("timelogs", JSON.stringify(logs));
+        delete activeTimers[id];
+      }
+      updateTimerButtons(id);
+    }
+
+    function saveTimeLog(id, session) {
+      const logs = JSON.parse(localStorage.getItem("timelogs") || "{}");
+      if (!logs[id]) logs[id] = [];
+      logs[id].push(session);
+      localStorage.setItem("timelogs", JSON.stringify(logs));
+    }
+
+    function showLogs(id) {
+      const logs = JSON.parse(localStorage.getItem("timelogs") || "{}")[id] || [];
+      alert("Logs for #" + id + ":\n\n" + logs.map(l => `Start: ${l.start}\nEnd: ${l.end}`).join("\n\n"));
+    }
+
+    function updateTimerButtons(id) {
+      const isRunning = !!activeTimers[id];
+      const playBtn = document.getElementById(`play-${id}`);
+      const stopBtn = document.getElementById(`stop-${id}`);
+      if (playBtn && stopBtn) {
+        playBtn.style.display = isRunning ? "none" : "inline-block";
+        stopBtn.style.display = isRunning ? "inline-block" : "none";
+      }
+    }
+
+    function updateTimerDisplay() {
+      const logs = JSON.parse(localStorage.getItem("timelogs") || "{}");
+      const now = new Date();
+      const today = now.toISOString().split("T")[0];
+
+      for (const id of Object.keys(logs)) {
+        const sessions = logs[id] || [];
+        let totalMs = 0;
+
+        for (const s of sessions) {
+          const start = new Date(s.start);
+          if (s.end) {
+            const end = new Date(s.end);
+            if (s.start.startsWith(today)) {
+              totalMs += end - start;
+            }
+          } else {
+            if (s.start.startsWith(today)) {
+              totalMs += now - start;
+            }
+          }
+        }
+        const seconds = Math.floor(totalMs / 1000);
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+
+        const td = document.getElementById(`timer-${id}`);
+        if (td) {
+          const display = td.querySelector(".time-display");
+          if (display) {
+            display.textContent = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+          }
+        }
+
+
+        updateTimerButtons(id);
+      }
+    }
+
+
+
     function getMultiSelectHTML(id, options, selectedValues) {
       const sorted = [...options].sort((a, b) => a.localeCompare(b));
 
@@ -558,6 +691,7 @@
       else if (id === "typeFilter") filterState.type = values;
       else if (id === "assignedToFilter") filterState.assignedTo = values;
       else if (id === "projectFilter") filterState.project = values;
+
       saveFilterState();
       filterWorkItems();
     }
@@ -606,6 +740,7 @@
       <tr>
         <th onclick="sortBy('id')">ID</th>
         <th onclick="sortBy('title')">Title</th>
+        <th>Timer</th>
         <th onclick="sortBy('createdDate')">Age
           <span onclick="toggleCreatedFormat(event)" style="cursor: pointer;" title="Toggle age format">
             ${showCreatedAsDate ? '📅' : '🕒'}
@@ -639,16 +774,26 @@
           const descHtml = item.description ? highlight(item.description, search) : "<em>No description</em>";
 
           html += `<tr>
-        <td><a href="${link}" target="_blank">${item.id}</a></td>
+        <td>
+          <a href="${link}" target="_blank">${item.id}</a><br/>
+        </td>
         <td class="${titleClass}" 
-            onclick="toggleInlineDescription(${item.id})"
-            onmouseover="showDescription(event, ${item.id})"
-            onmousemove="moveDescription(event)"
-            onmouseleave="hideDescription()"
-            style="cursor: pointer;"
-            title="Click to show/hide description below">
+          onclick="toggleInlineDescription(${item.id})"
+          onmouseover="showDescription(event, ${item.id})"
+          onmousemove="moveDescription(event)"
+          onmouseleave="hideDescription()"
+          style="cursor: pointer;"
+          title="Click to show/hide description below">
           ${highlight(item.title, search)}
         </td>
+        <td id="timer-${item.id}">
+          <div class="timer-container">
+            <span class="time-display">00:00:00</span>
+            <button id="play-${item.id}" onclick="startTimer(${item.id})" class="timer-btn play">▶️</button>
+            <button id="stop-${item.id}" onclick="stopTimer(${item.id})" class="timer-btn stop">⏹️</button>
+            <button onclick="showLogs(${item.id})" class="timer-btn">📜</button>
+          </div>
+        </td> 
         <td title="${item.createdDate
               ? (showCreatedAsDate ? timeAgo(item.createdDate) : formatDateNL(item.createdDate))
               : '-'
@@ -686,7 +831,12 @@
 
       html += `</tbody></table>`;
       tableContainer.innerHTML = html;
+
+      for (const item of data) {
+        updateTimerButtons(item.id);
+      }
     }
+
     function setStatus(text) {
       statusBar.textContent = text;
       statusBar.style.display = text ? "inline-block" : "none";
@@ -1084,6 +1234,9 @@
       const stored = localStorage.getItem("preferredTheme");
       const theme = stored || detectSystemTheme();
       applyTheme(theme);
+
+      loadTimersFromStorage();
+      setInterval(updateTimerDisplay, 1000);
     });
 
 
