@@ -1129,6 +1129,9 @@
           await flushUI();
         }
 
+        // Remove duplicates from allWorkItemIds
+        allWorkItemIds = [...new Set(allWorkItemIds)];
+
         const newItems = [];
         const total = allWorkItemIds.length;
         const startTime = Date.now();
