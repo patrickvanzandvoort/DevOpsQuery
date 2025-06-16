@@ -661,32 +661,32 @@
     }
 
 
-
     function getMultiSelectHTML(id, options, selectedValues) {
       const sorted = [...options].sort((a, b) => a.localeCompare(b));
 
       return `
-    <div class="dropdown-container">
-      <div class="dropdown-toggle" onclick="event.stopPropagation(); toggleDropdown('${id}')">
-        ${selectedValues.length ? selectedValues.join(", ") : "(All)"}
-      </div>
-      <div class="dropdown-panel" id="${id}">
-        <label>
-          <input type="checkbox" onchange="clearFilter('${id}')" />
-          <span>(All)</span>
-        </label>
-        <label>
-          <input type="checkbox" onchange="invertFilter('${id}')" />
-          <span>Invert</span>
-        </label>
-        ${sorted.map(opt => `
-          <label>
-            <input type="checkbox" value="${opt}" ${selectedValues.includes(opt) ? "checked" : ""} onchange="onMultiFilterChange('${id}')" />
-            <span>${opt}</span>
-          </label>`).join("")}
-      </div>
-    </div>`;
+        <div class="dropdown-container">
+          <div class="dropdown-toggle" onclick="event.stopPropagation(); toggleDropdown('${id}')">
+            ${selectedValues.length ? selectedValues.join(", ") : "(All)"}
+          </div>
+          <div class="dropdown-panel" id="${id}">
+            <label>
+              <input type="checkbox" onchange="clearFilter('${id}')" onclick="event.stopPropagation()" />
+              <span>(All)</span>
+            </label>
+            <label>
+              <input type="checkbox" onchange="invertFilter('${id}')" onclick="event.stopPropagation()" />
+              <span>Invert</span>
+            </label>
+            ${sorted.map(opt => `
+              <label>
+                <input type="checkbox" value="${opt}" ${selectedValues.includes(opt) ? "checked" : ""} onchange="onMultiFilterChange('${id}')" onclick="event.stopPropagation()" />
+                <span>${opt}</span>
+              </label>`).join("")}
+          </div>
+        </div>`;
     }
+
 
     function clearFilter(id) {
       const checkboxes = document.querySelectorAll(`#${id} input[type=checkbox]`);
@@ -906,10 +906,9 @@
       moveDescription(e);
     }
 
-
-
     function moveDescription(e) {
       const popup = document.getElementById("descPopup");
+      if (!popup) return;
       popup.style.left = e.pageX + 15 + "px";
       popup.style.top = e.pageY + 15 + "px";
     }
