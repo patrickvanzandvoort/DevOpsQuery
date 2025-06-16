@@ -265,12 +265,14 @@
     }
 
     .timer-btn.play {
-      background-color: #28a745; /* green */
+      background-color: #28a745;
+      /* green */
       border-color: #28a745;
     }
 
     .timer-btn.stop {
-      background-color: #dc3545; /* red */
+      background-color: #dc3545;
+      /* red */
       border-color: #dc3545;
     }
 
@@ -465,6 +467,8 @@
     let showCreatedAsDate = false;
     let allData = [];
     let sortState = { column: "", asc: true };
+    let selectedLogDate = new Date().toISOString().split("T")[0];
+
     const filterState = JSON.parse(localStorage.getItem("multiFilters") || '{"state":[],"type":[],"assignedTo":[],"project":[]}');
 
     expandThresholdInput.addEventListener("input", () => {
@@ -571,8 +575,20 @@
 
     function showLogs(id) {
       const logs = JSON.parse(localStorage.getItem("timelogs") || "{}")[id] || [];
-      alert("Logs for #" + id + ":\n\n" + logs.map(l => `Start: ${l.start}\nEnd: ${l.end}`).join("\n\n"));
+
+      const dayLogs = logs.filter(l => l.start.startsWith(selectedLogDate));
+      if (dayLogs.length === 0) {
+        alert(`No logs for ${selectedLogDate} on item #${id}`);
+        return;
+      }
+
+      const summary = dayLogs.map(l => {
+        return `Start: ${l.start}\nEnd: ${l.end || "(running)"}`;
+      }).join("\n\n");
+
+      alert(`Logs for item #${id} on ${selectedLogDate}:\n\n${summary}`);
     }
+
 
     function updateTimerButtons(id) {
       const isRunning = !!activeTimers[id];
@@ -587,7 +603,9 @@
     function updateTimerDisplay() {
       const logs = JSON.parse(localStorage.getItem("timelogs") || "{}");
       const now = new Date();
-      const today = now.toISOString().split("T")[0];
+      const today = new Date().toISOString().split("T")[0];
+      const targetDate = selectedLogDate;
+
 
       for (const id of Object.keys(logs)) {
         const sessions = logs[id] || [];
@@ -597,7 +615,7 @@
           const start = new Date(s.start);
           if (s.end) {
             const end = new Date(s.end);
-            if (s.start.startsWith(today)) {
+            if (s.start.startsWith(targetDate)) {
               totalMs += end - start;
             }
           } else {
@@ -740,7 +758,10 @@
       <tr>
         <th onclick="sortBy('id')">ID</th>
         <th onclick="sortBy('title')">Title</th>
-        <th>Timer</th>
+        <th>
+          Timer<br />
+          <input type="date" id="logDateSelector" style="font-size:0.75em; width: 130px;" />
+        </th>
         <th onclick="sortBy('createdDate')">Age
           <span onclick="toggleCreatedFormat(event)" style="cursor: pointer;" title="Toggle age format">
             ${showCreatedAsDate ? '📅' : '🕒'}
@@ -1234,6 +1255,15 @@
       const stored = localStorage.getItem("preferredTheme");
       const theme = stored || detectSystemTheme();
       applyTheme(theme);
+
+      const dateInput = document.getElementById("logDateSelector");
+      if (dateInput) dateInput.value = selectedLogDate;
+
+      dateInput?.addEventListener("change", () => {
+        selectedLogDate = dateInput.value;
+        localStorage.setItem("selectedLogDate", selectedLogDate);
+        updateTimerDisplay(); // re-filter logs
+      });
 
       loadTimersFromStorage();
       setInterval(updateTimerDisplay, 1000);
