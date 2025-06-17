@@ -325,6 +325,27 @@
       background: var(--border-color);
     }
 
+    .download-csv {
+      margin-left: .5em;
+      padding: .4em .8em;
+      font-size: .85em;
+      cursor: pointer;
+      background: var(--table-alt);
+      border: 1px solid var(--border-color);
+      color: #217346; /* Excel green (default) */
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4em;
+      border-radius: 4px;
+      transition: background 0.2s, color 0.2s, border 0.2s;
+    }
+
+    .download-csv:hover {
+      background: #217346;  /* Excel green */
+      color: #fff;
+      border-color: #217346;
+    }
+
     .desc-match-border {
       border-left: 4px solid var(--highlight) !important;
     }
@@ -447,6 +468,7 @@
     <input id="filter" placeholder="🔍 Filter work items..." oninput="onSearchChange()" />
     <!-- NEW: clear-filters button -->
     <button class="clear-filters" onclick="clearAllFilters()" title="Reset all filters">✖️ Clear all</button>
+    <button class="download-csv" onclick="downloadAsCSV()">📗 CSV</button>
   </div>
 
   <div id="table-container">No data loaded yet.</div>
@@ -511,6 +533,30 @@
       }
     }
 
+    function downloadAsCSV() {
+      // Use filtered data if you want only what's on screen, or allData for everything
+      const rows = [];
+      // Adjust columns/fields as needed
+      rows.push(['ID', 'Title', 'State', 'Type', 'Assigned To', 'Project', 'Created', 'Last Updated']);
+      for (const item of allData) {
+        rows.push([
+          item.id,
+          '"' + (item.title || '').replace(/"/g, '""') + '"',
+          '"' + (item.state || '').replace(/"/g, '""') + '"',
+          '"' + (item.type || '').replace(/"/g, '""') + '"',
+          '"' + (item.assignedTo || '').replace(/"/g, '""') + '"',
+          '"' + (item.project || '').replace(/"/g, '""') + '"',
+          item.createdDate || '',
+          item.lastUpdated || ''
+        ]);
+      }
+      const csv = rows.map(r => r.join(",")).join("\r\n");
+      const blob = new Blob([csv], {type: "text/csv"});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = "devops-workitems.csv";
+      a.click();
+    }
 
     function clearAllFilters() {
       // reset UI controls
