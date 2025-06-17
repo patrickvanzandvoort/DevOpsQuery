@@ -211,7 +211,11 @@
       padding: 0.5em;
       max-height: 200px;
       overflow-y: auto;
-      width: 100%;
+      width: auto;
+      min-width: 480px;
+      /* Set a minimum width if you like */
+      max-width: 960px;
+      /* Set a maximum width for long lists */
       box-sizing: border-box;
     }
 
@@ -516,6 +520,11 @@
       filterState.assignedTo = [];
       filterState.project = [];
 
+      updateDropdownToggleText("stateFilter", []);
+      updateDropdownToggleText("typeFilter", []);
+      updateDropdownToggleText("assignedToFilter", []);
+      updateDropdownToggleText("projectFilter", []);
+
       // update localStorage
       localStorage.setItem("textFilter", "");
       localStorage.setItem("multiFilters", JSON.stringify(filterState));
@@ -694,6 +703,7 @@
         if (cb.value) cb.checked = false; // skip the control items
       });
 
+      updateDropdownToggleText(id, []);
       onMultiFilterChange(id);
     }
 
@@ -714,6 +724,16 @@
       panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
     }
 
+    function updateDropdownToggleText(id, selectedValues) {
+      // Find the toggle for this filter
+      const panel = document.getElementById(id);
+      if (!panel) return;
+      const toggle = panel.parentElement.querySelector('.dropdown-toggle');
+      if (toggle) {
+        toggle.textContent = selectedValues.length ? selectedValues.join(", ") : "(All)";
+      }
+    }
+
     window.addEventListener("click", e => {
       if (!e.target.closest(".dropdown-container")) {
         document.querySelectorAll(".dropdown-panel").forEach(p => p.style.display = "none");
@@ -729,6 +749,7 @@
       else if (id === "projectFilter") filterState.project = values;
 
       saveFilterState();
+      updateDropdownToggleText(id, values);
       filterWorkItems();
     }
 
@@ -748,133 +769,126 @@
       sortState.column = column;
       filterWorkItems();
     }
-    function renderTable(data) {
+
+    function renderTableHeader() {
       const stateOptions = getDistinct("state");
       const typeOptions = getDistinct("type");
       const assignedOptions = getDistinct("assignedTo");
       const projectOptions = getDistinct("project");
 
-      const search = filterInput.value.trim().toLowerCase();
+      tableContainer.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortBy('id')">ID</th>
+              <th onclick="sortBy('title')">Title</th>
+              <th>
+                Timer<br />
+                <input type="date" id="logDateSelector" style="font-size:0.75em; width: 130px;" />
+              </th>
+              <th onclick="sortBy('createdDate')">Age
+                <span onclick="toggleCreatedFormat(event)" style="cursor: pointer;" title="Toggle age format">
+                  ${showCreatedAsDate ? '📅' : '🕒'}
+                </span>
+              </th>
+              <th onclick="sortBy('state')">State<br>${getMultiSelectHTML("stateFilter", stateOptions, filterState.state)}</th>
+              <th onclick="sortBy('type')">Type<br>${getMultiSelectHTML("typeFilter", typeOptions, filterState.type)}</th>
+              <th onclick="sortBy('assignedTo')">Assigned To<br>${getMultiSelectHTML("assignedToFilter", assignedOptions, filterState.assignedTo)}</th>
+              <th onclick="sortBy('project')">Project<br>${getMultiSelectHTML("projectFilter", projectOptions, filterState.project)}</th>
+              <th onclick="refreshVisibleWorkItems()" title="Click to refresh/download all visible work items.">Downloaded 🔄</th>
+            </tr>
+          </thead>
+          <tbody id="workitem-tbody">
+            <!-- Data rows inserted here -->
+          </tbody>
+        </table>
+      `;
+    }
 
-      if (sortState.column && sortState.column !== "lastUpdated") {
-        data = data.slice().sort((a, b) => {
-          const v1 = a[sortState.column];
-          const v2 = b[sortState.column];
-
-          if (sortState.column === "id") {
-            return sortState.asc ? v1 - v2 : v2 - v1;
-          }
-
-          const s1 = (v1 || "").toString().toLowerCase();
-          const s2 = (v2 || "").toString().toLowerCase();
-          return sortState.asc ? s1.localeCompare(s2) : s2.localeCompare(s1);
-        });
-      }
-
-      let html = `<table>
-    <thead>
-      <tr>
-        <th onclick="sortBy('id')">ID</th>
-        <th onclick="sortBy('title')">Title</th>
-        <th>
-          Timer<br />
-          <input type="date" id="logDateSelector" style="font-size:0.75em; width: 130px;" />
-        </th>
-        <th onclick="sortBy('createdDate')">Age
-          <span onclick="toggleCreatedFormat(event)" style="cursor: pointer;" title="Toggle age format">
-            ${showCreatedAsDate ? '📅' : '🕒'}
-          </span>          
-        </th>
-        <th onclick="sortBy('state')">State<br>${getMultiSelectHTML("stateFilter", stateOptions, filterState.state)}</th>
-        <th onclick="sortBy('type')">Type<br>${getMultiSelectHTML("typeFilter", typeOptions, filterState.type)}</th>
-        <th onclick="sortBy('assignedTo')">Assigned To<br>${getMultiSelectHTML("assignedToFilter", assignedOptions, filterState.assignedTo)}</th>
-        <th onclick="sortBy('project')">Project<br>${getMultiSelectHTML("projectFilter", projectOptions, filterState.project)}</th>
-        <th onclick="refreshVisibleWorkItems()" title="Click to refresh/download all visible work items.">Downloaded 🔄</th>
-      </tr>
-    </thead><tbody>`;
+    function renderTableRows(data) {
+      let html = "";
 
       if (data.length === 0) {
-        html += `<tr><td colspan="8" style="text-align:center;color:#888;">No matching work items</td></tr>`;
+        html += `<tr><td colspan="9" style="text-align:center;color:#888;">No matching work items</td></tr>`;
       } else {
         for (const item of data) {
+          // ... your existing row rendering logic ...
+          // Replace all table opening/closing with just row HTML
           const link = `${getBaseUrl()}/${item.project}/_workitems/edit/${item.id}`;
           const updatedText = item.lastUpdated ? timeAgo(item.lastUpdated) : "-";
-
-          const descMatch = search && item.description.toLowerCase().includes(search);
+          const descMatch = filterInput.value.trim().toLowerCase() && item.description.toLowerCase().includes(filterInput.value.trim().toLowerCase());
           const titleClass = descMatch ? 'desc-match-border' : '';
-
           const safeType = (item.type || "").replace(/\s+/g, "");
           const typeClass = `type-border-${safeType || 'Default'}`;
-
           const safeState = (item.state || "").replace(/\s+/g, "");
           const stateClass = `state-border-${safeState || 'Default'}`;
-
-
-          const descHtml = item.description ? highlight(item.description, search) : "<em>No description</em>";
+          const descHtml = item.description ? highlight(item.description, filterInput.value.trim().toLowerCase()) : "<em>No description</em>";
 
           html += `<tr>
-        <td>
-          <a href="${link}" target="_blank">${item.id}</a><br/>
-        </td>
-        <td class="${titleClass}" 
-          onclick="toggleInlineDescription(${item.id})"
-          onmouseover="showDescription(event, ${item.id})"
-          onmousemove="moveDescription(event)"
-          onmouseleave="hideDescription()"
-          style="cursor: pointer;"
-          title="Click to show/hide description below">
-          ${highlight(item.title, search)}
-        </td>
-        <td id="timer-${item.id}">
-          <div class="timer-container">
-            <span class="time-display">00:00:00</span>
-            <button id="play-${item.id}" onclick="startTimer(${item.id})" class="timer-btn play">▶️</button>
-            <button id="stop-${item.id}" onclick="stopTimer(${item.id})" class="timer-btn stop">⏹️</button>
-            <button onclick="showLogs(${item.id})" class="timer-btn">📜</button>
-          </div>
-        </td> 
-        <td title="${item.createdDate
-              ? (showCreatedAsDate ? timeAgo(item.createdDate) : formatDateNL(item.createdDate))
-              : '-'
-            }">
-          ${item.createdDate
-              ? (showCreatedAsDate ? formatDateNL(item.createdDate) : timeAgo(item.createdDate))
-              : "-"
-            }
-        </td>
-        <td class="${stateClass}">${highlight(item.state, search)}</td>
-        <td class="${typeClass}">${highlight(item.type, search)}</td>
-        <td>
-          ${highlight(item.assignedTo || "", search)}
-          ${item.assignedTo
-              ? `
-                <span style="cursor:pointer;" onclick="clearAssignedTo(${item.id})" title="Clear assigned user">❌</span>
-                <span style="cursor:pointer; margin-left: 0.4em;" onclick="refreshWorkItemsByField('assignedTo', '${item.assignedTo}')" title="Refresh all for ${item.assignedTo}">🔄</span>
-              `
-              : ""
-            }
-        </td>
-        <td>
-          ${highlight(item.project, search)}
-          <span style="cursor:pointer; margin-left: 0.4em;" onclick="refreshWorkItemsByField('project', '${item.project}')" title="Refresh all for ${item.project}">🔄</span>
-        </td>
-        <td><span class="refreshable" onclick="refreshWorkItem(${item.id})">${updatedText}</span></td>
-      </tr>
-      <tr id="desc-inline-${item.id}" class="desc-inline-row" style="display: none;">
-        <td colspan="7" style="padding: 0.5em 1em; color: #ccc; font-size: 0.9em; border-top: none;">
-          ${descHtml}
-        </td>
-      </tr>`;
+                    <td>
+                      <a href="${link}" target="_blank">${item.id}</a><br/>
+                    </td>
+                    <td class="${titleClass}" 
+                      onclick="toggleInlineDescription(${item.id})"
+                      onmouseover="showDescription(event, ${item.id})"
+                      onmousemove="moveDescription(event)"
+                      onmouseleave="hideDescription()"
+                      style="cursor: pointer;"
+                      title="Click to show/hide description below">
+                      ${highlight(item.title, filterInput.value.trim().toLowerCase())}
+                    </td>
+                    <td id="timer-${item.id}">
+                      <div class="timer-container">
+                        <span class="time-display">00:00:00</span>
+                        <button id="play-${item.id}" onclick="startTimer(${item.id})" class="timer-btn play">▶️</button>
+                        <button id="stop-${item.id}" onclick="stopTimer(${item.id})" class="timer-btn stop">⏹️</button>
+                        <button onclick="showLogs(${item.id})" class="timer-btn">📜</button>
+                      </div>
+                    </td> 
+                    <td title="${item.createdDate
+                          ? (showCreatedAsDate ? timeAgo(item.createdDate) : formatDateNL(item.createdDate))
+                          : '-'
+                        }">
+                      ${item.createdDate
+                          ? (showCreatedAsDate ? formatDateNL(item.createdDate) : timeAgo(item.createdDate))
+                          : "-"
+                        }
+                    </td>
+                    <td class="${stateClass}">${highlight(item.state, filterInput.value.trim().toLowerCase())}</td>
+                    <td class="${typeClass}">${highlight(item.type, filterInput.value.trim().toLowerCase())}</td>
+                    <td>
+                      ${highlight(item.assignedTo || "", filterInput.value.trim().toLowerCase())}
+                      ${item.assignedTo
+                          ? `
+                            <span style="cursor:pointer;" onclick="clearAssignedTo(${item.id})" title="Clear assigned user">❌</span>
+                            <span style="cursor:pointer; margin-left: 0.4em;" onclick="refreshWorkItemsByField('assignedTo', '${item.assignedTo}')" title="Refresh all for ${item.assignedTo}">🔄</span>
+                          `
+                          : ""
+                        }
+                    </td>
+                    <td>
+                      ${highlight(item.project, filterInput.value.trim().toLowerCase())}
+                      <span style="cursor:pointer; margin-left: 0.4em;" onclick="refreshWorkItemsByField('project', '${item.project}')" title="Refresh all for ${item.project}">🔄</span>
+                    </td>
+                    <td><span class="refreshable" onclick="refreshWorkItem(${item.id})">${updatedText}</span></td>
+                  </tr>
+                  <tr id="desc-inline-${item.id}" class="desc-inline-row" style="display: none;">
+                    <td colspan="7" style="padding: 0.5em 1em; color: #ccc; font-size: 0.9em; border-top: none;">
+                      ${descHtml}
+                    </td>
+                  </tr>`;
         }
       }
 
-      html += `</tbody></table>`;
-      tableContainer.innerHTML = html;
+      // Insert just the rows!
+      document.getElementById("workitem-tbody").innerHTML = html;
 
+      // Timer buttons (keep this)
       for (const item of data) {
         updateTimerButtons(item.id);
       }
     }
+
 
     function setStatus(text) {
       statusBar.textContent = text;
@@ -935,7 +949,7 @@
         (filterState.project.length === 0 || filterState.project.includes(w.project))
       );
 
-      renderTable(filtered);
+      renderTableRows(filtered);
 
       const threshold = parseInt(localStorage.getItem("expandThreshold") || "10", 10);
 
@@ -1201,6 +1215,7 @@
         progressBar.value = 100;
         progressBar.style.display = "none";
 
+        renderTableHeader();
         filterWorkItems();
       } catch (err) {
         tableContainer.innerHTML = `<pre>Error:\n${err}</pre>`;
@@ -1216,6 +1231,7 @@
     const cached = localStorage.getItem("devopsWorkItems");
     if (cached) {
       allData = JSON.parse(cached);
+      renderTableHeader();
       filterWorkItems();
     }
 
