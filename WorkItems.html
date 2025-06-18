@@ -332,7 +332,8 @@
       cursor: pointer;
       background: var(--table-alt);
       border: 1px solid var(--border-color);
-      color: #217346; /* Excel green (default) */
+      color: #217346;
+      /* Excel green (default) */
       display: inline-flex;
       align-items: center;
       gap: 0.4em;
@@ -341,7 +342,8 @@
     }
 
     .download-csv:hover {
-      background: #217346;  /* Excel green */
+      background: #217346;
+      /* Excel green */
       color: #fff;
       border-color: #217346;
     }
@@ -465,7 +467,7 @@
   </div>
 
   <div class="filter-bar">
-    <input id="filter" placeholder="🔍 Filter work items..." oninput="onSearchChange()" />
+    <input id="filter" placeholder="🔍 Filter work items..." />
     <!-- NEW: clear-filters button -->
     <button class="clear-filters" onclick="clearAllFilters()" title="Reset all filters">✖️ Clear all</button>
     <button class="download-csv" onclick="downloadAsCSV()">📗 CSV</button>
@@ -491,6 +493,7 @@
     onlyAssignedToMeCheckbox.checked = JSON.parse(localStorage.getItem("onlyAssignedToMe") || "false");
     expandThresholdInput.value = localStorage.getItem("expandThreshold") || "10";
     filterInput.value = localStorage.getItem("textFilter") || "";
+    filterInput.addEventListener("input", debounce(onSearchChange, 500));
 
     let showCreatedAsDate = false;
     let allData = [];
@@ -551,7 +554,7 @@
         ]);
       }
       const csv = rows.map(r => r.join(",")).join("\r\n");
-      const blob = new Blob([csv], {type: "text/csv"});
+      const blob = new Blob([csv], { type: "text/csv" });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = "devops-workitems.csv";
@@ -578,7 +581,13 @@
       filterWorkItems();          // re-render table
     }
 
-
+    function debounce(fn, delay) {
+      let timeout;
+      return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn.apply(this, args), delay);
+      };
+    }
     function getBaseUrl() {
       return urlInput.value.trim().replace(/\/$/, "");
     }
@@ -892,25 +901,25 @@
                       </div>
                     </td> 
                     <td title="${item.createdDate
-                          ? (showCreatedAsDate ? timeAgo(item.createdDate) : formatDateNL(item.createdDate))
-                          : '-'
-                        }">
+              ? (showCreatedAsDate ? timeAgo(item.createdDate) : formatDateNL(item.createdDate))
+              : '-'
+            }">
                       ${item.createdDate
-                          ? (showCreatedAsDate ? formatDateNL(item.createdDate) : timeAgo(item.createdDate))
-                          : "-"
-                        }
+              ? (showCreatedAsDate ? formatDateNL(item.createdDate) : timeAgo(item.createdDate))
+              : "-"
+            }
                     </td>
                     <td class="${stateClass}">${highlight(item.state, filterInput.value.trim().toLowerCase())}</td>
                     <td class="${typeClass}">${highlight(item.type, filterInput.value.trim().toLowerCase())}</td>
                     <td>
                       ${highlight(item.assignedTo || "", filterInput.value.trim().toLowerCase())}
                       ${item.assignedTo
-                          ? `
+              ? `
                             <span style="cursor:pointer;" onclick="clearAssignedTo(${item.id})" title="Clear assigned user">❌</span>
                             <span style="cursor:pointer; margin-left: 0.4em;" onclick="refreshWorkItemsByField('assignedTo', '${item.assignedTo}')" title="Refresh all for ${item.assignedTo}">🔄</span>
                           `
-                          : ""
-                        }
+              : ""
+            }
                     </td>
                     <td>
                       ${highlight(item.project, filterInput.value.trim().toLowerCase())}
