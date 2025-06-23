@@ -722,7 +722,7 @@
 
   <div class="tab-header">
     <div class="tab-item" data-tab="tab-workitems" id="btn-tab-workitems">📋 Work Items</div>
-    <div class="tab-item" data-tab="tab-hello" id="btn-tab-hello">Timers</div>
+    <div class="tab-item" data-tab="tab-timerCards" id="btn-tab-timerCards">Timers</div>
   </div>
 
   <div id="tab-workitems" class="tab-content">
@@ -734,10 +734,11 @@
     <div id="table-container">No data loaded yet.</div>
   </div>
 
-  <div id="tab-hello" class="tab-content" style="display: none; margin-top: 1em;">
+  <div id="tab-timerCards" class="tab-content" style="display: none; margin-top: 1em;">
     <h2>Time tracker</h2>
     <div id="buttonList"></div>
   </div>
+
 
 
 
@@ -1672,7 +1673,7 @@
       document.querySelectorAll(".tab-item").forEach(tab => tab.classList.remove("active-tab"));
       document.getElementById("btn-" + tabId).classList.add("active-tab");
 
-      if (tabId === "tab-hello") {
+      if (tabId === "tab-timerCards") {
         loadCardsFromStorage();
       }
 
