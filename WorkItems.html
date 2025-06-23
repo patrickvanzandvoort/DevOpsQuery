@@ -738,8 +738,9 @@
 
   <div class="tab-header">
     <div class="tab-item" data-tab="tab-workitems" id="btn-tab-workitems">📋 Work Items</div>
-    <div class="tab-item" data-tab="tab-timerCards" id="btn-tab-timerCards">Timers</div>
+    <div class="tab-item" data-tab="tab-timerCards" id="btn-tab-timerCards">⏲️ Timers</div>
     <div class="tab-item" data-tab="tab-summary" id="btn-tab-summary">⏱️ Summary</div>
+    <div class="tab-item" data-tab="tab-settings" id="btn-tab-settings">⚙️ Settings</div>
   </div>
 
   <div id="tab-workitems" class="tab-content">
@@ -764,8 +765,11 @@
 
 
   <div id="tab-summary" class="tab-content" style="display: none; margin-top: 1em;">
-    <h2>Time Summary</h2>
-    <input type="date" id="summaryDateSelector" />
+    <div style="display: flex; align-items: center; gap: 0.5em; margin-bottom: 1em;">
+      <button id="summaryDatePrev">&lt;</button>
+      <input type="date" id="summaryDateSelector">
+      <button id="summaryDateNext">&gt;</button>
+    </div>
     <table style="margin-top: 1em; width: 100%; border-collapse: collapse;">
       <thead>
         <tr>
@@ -781,6 +785,29 @@
     </table>
   </div>
 
+  <div id="tab-settings" class="tab-content" style="display: none;">
+    <h3>Settings</h3>
+    <label>
+      Company ID:
+      <input type="number" id="settingsCompanyId" />
+    </label><br />
+    <label>
+      Username:
+      <input type="text" id="settingsUserName" />
+    </label><br />
+    <div style="display: flex; align-items: center; gap: 0.5em;">
+      <label style="flex: 1;">
+        Password:
+        <input type="password" id="settingsPassword" style="width: 100%;" />
+      </label>
+      <button id="togglePasswordVisibility" type="button" title="Show/Hide Password"
+        style="font-size: 1.2em; cursor: pointer;     max-width: 44px;">👁️</button>
+    </div><br />
+    <label>
+      Uniconta Base URL:
+      <input type="text" id="settingsBaseUrl" />
+    </label>
+  </div>
 
   <script>
     const urlInput = document.getElementById("url");
@@ -1983,7 +2010,7 @@
 
           updateLocalCardOrder();
         });
-        
+
         container.addEventListener("dragend", () => {
           container.classList.remove("dragging");
           dragSource = null;
@@ -2080,8 +2107,6 @@
       }
     }
 
-
-
     window.addEventListener("DOMContentLoaded", () => {
       const storedTab = localStorage.getItem("activeTabId") || "tab-workitems";
       switchTab(storedTab);
@@ -2109,10 +2134,63 @@
         summaryDateInput.addEventListener("change", updateSummaryTable);
       }
 
+      const summaryPrevBtn = document.getElementById("summaryDatePrev");
+      const summaryNextBtn = document.getElementById("summaryDateNext");
+
+      function changeSummaryDate(days) {
+        const current = new Date(summaryDateInput.value);
+        current.setDate(current.getDate() + days);
+        const newDate = current.toISOString().split("T")[0];
+        summaryDateInput.value = newDate;
+        updateSummaryTable();
+      }
+
+      summaryPrevBtn?.addEventListener("click", () => changeSummaryDate(-1));
+      summaryNextBtn?.addEventListener("click", () => changeSummaryDate(1));
+
       document.querySelectorAll(".color-swatch").forEach(swatch => {
         swatch.addEventListener("dragstart", (e) => {
           e.dataTransfer.setData("text/plain", swatch.getAttribute("data-color"));
         });
+      });
+
+      // Load saved settings into input fields
+      const companyIdInput = document.getElementById("settingsCompanyId");
+      const userNameInput = document.getElementById("settingsUserName");
+      const passwordInput = document.getElementById("settingsPassword");
+      const baseUrlInput = document.getElementById("settingsBaseUrl");
+      const settingsStatus = document.getElementById("settingsStatus");
+
+      function autoSaveSettings() {
+        localStorage.setItem("companyId", parseInt(companyIdInput.value, 10) || 0);
+        localStorage.setItem("UserName", userNameInput.value);
+        localStorage.setItem("PassWord", passwordInput.value);
+        localStorage.setItem("BaseUrl", baseUrlInput.value);
+
+        if (settingsStatus) {
+          settingsStatus.textContent = "✅ Saved";
+          setTimeout(() => (settingsStatus.textContent = ""), 1500);
+        }
+      };
+
+      autoSaveSettings = debounce(autoSaveSettings, 300);
+
+      // Initial load
+      companyIdInput.value = localStorage.getItem("companyId") || "";
+      userNameInput.value = localStorage.getItem("UserName") || "";
+      passwordInput.value = localStorage.getItem("PassWord") || "";
+      baseUrlInput.value = localStorage.getItem("BaseUrl") || "https://odata.uniconta.com/api/Entities/";
+
+      // Attach auto-save to changes
+      [companyIdInput, userNameInput, passwordInput, baseUrlInput].forEach(input => {
+        input.addEventListener("input", autoSaveSettings);
+      });
+
+      const toggleBtn = document.getElementById("togglePasswordVisibility");
+      toggleBtn.addEventListener("click", () => {
+        const isHidden = passwordInput.type === "password";
+        passwordInput.type = isHidden ? "text" : "password";
+        toggleBtn.textContent = isHidden ? "🙈" : "👁️";
       });
 
       loadTimersFromStorage();
