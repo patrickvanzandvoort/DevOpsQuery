@@ -2219,6 +2219,7 @@
             if (!s.start.startsWith(date)) continue;
 
             payload.push({
+              KeyStr: "001",
               Project: card.projectId || "",
               Task: card.taskId || "",
               Category: card.categoryId || "",
@@ -2239,7 +2240,7 @@
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": "Basic " + btoa(`${companyId}/${userName}:${passWord}`)
+              "Authorization": "Basic " + btoa(`${userName}:${passWord}`)   //btoa(`${companyId}/${userName}:${passWord}`)
             },
             body: JSON.stringify(payload)
           });
