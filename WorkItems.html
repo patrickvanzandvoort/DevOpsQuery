@@ -458,6 +458,14 @@
       font-weight: bold;
     }
 
+    .color-swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1px solid #ccc;
+      cursor: grab;
+    }
+
     #buttonList {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
@@ -476,6 +484,14 @@
       padding: 10px;
       background: #f4f4f460;
       border-radius: 8px;
+    }
+
+    .button-container.dragging {
+      opacity: 0.5;
+    }
+
+    .button-container.drag-hover {
+      outline: 2px dashed #999;
     }
 
     .button-container.active {
@@ -723,6 +739,7 @@
   <div class="tab-header">
     <div class="tab-item" data-tab="tab-workitems" id="btn-tab-workitems">📋 Work Items</div>
     <div class="tab-item" data-tab="tab-timerCards" id="btn-tab-timerCards">Timers</div>
+    <div class="tab-item" data-tab="tab-summary" id="btn-tab-summary">⏱️ Summary</div>
   </div>
 
   <div id="tab-workitems" class="tab-content">
@@ -735,11 +752,34 @@
   </div>
 
   <div id="tab-timerCards" class="tab-content" style="display: none; margin-top: 1em;">
-    <h2>Time tracker</h2>
+    <div id="colorPalette" style="display: flex; gap: 0.5em; margin-bottom: 1em;">
+      <div class="color-swatch" draggable="true" data-color="#f44336" style="background:#f44336;"></div>
+      <div class="color-swatch" draggable="true" data-color="#4caf50" style="background:#4caf50;"></div>
+      <div class="color-swatch" draggable="true" data-color="#2196f3" style="background:#2196f3;"></div>
+      <div class="color-swatch" draggable="true" data-color="#ff9800" style="background:#ff9800;"></div>
+      <div class="color-swatch" draggable="true" data-color="#9c27b0" style="background:#9c27b0;"></div>
+    </div>
     <div id="buttonList"></div>
   </div>
 
 
+  <div id="tab-summary" class="tab-content" style="display: none; margin-top: 1em;">
+    <h2>Time Summary</h2>
+    <input type="date" id="summaryDateSelector" />
+    <table style="margin-top: 1em; width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th style="text-align:left;">Card</th>
+          <th style="text-align:left;">Project</th>
+          <th style="text-align:left;">Task</th>
+          <th style="text-align:left;">Category</th>
+          <th style="text-align:right;">Total</th>
+          <th style="text-align:right;">Rounded (15m)</th>
+        </tr>
+      </thead>
+      <tbody id="summaryTableBody"></tbody>
+    </table>
+  </div>
 
 
   <script>
@@ -1673,12 +1713,15 @@
       document.querySelectorAll(".tab-item").forEach(tab => tab.classList.remove("active-tab"));
       document.getElementById("btn-" + tabId).classList.add("active-tab");
 
+      localStorage.setItem("activeTabId", tabId);
+
       if (tabId === "tab-timerCards") {
         loadCardsFromStorage();
+      } else if (tabId === "tab-summary") {
+        updateSummaryTable();
       }
-
-      localStorage.setItem("activeTabId", tabId);
     }
+
 
     function ensureCardExistsForWorkItem(workItemId) {
       const cards = JSON.parse(localStorage.getItem("timeTrackerCards") || "[]");
@@ -1696,7 +1739,10 @@
         buttonId,
         name: displayName,
         workItemId: String(workItemId),
-        color: randomColor
+        color: randomColor,
+        projectId: "",
+        taskId: "",
+        categoryId: ""
       };
 
       cards.push(newCard);
@@ -1737,7 +1783,7 @@
         <div class="taskBar">
           <div class="taskbtn stop-btn" title="Start only this task, stop others">☎️</div>
           <div class="taskbtn edit-btn">🖊️</div>
-          <div class="taskbtn clone-btn">🔂</div>
+          <div class="taskbtn clone-btn">🧬</div>
           <div class="taskbtn remove-btn" title="Delete">🗑️</div>
         </div>
         <div class="timer-btn">
@@ -1769,15 +1815,238 @@
           });
         }
 
+        const editBtn = container.querySelector(".edit-btn");
+        const settingsPanel = container.querySelector(".settings-container");
+
+        editBtn?.addEventListener("click", () => {
+          const isVisible = settingsPanel.style.display === "block";
+          settingsPanel.style.display = isVisible ? "none" : "block";
+        });
+
 
         // Mark card as active if timer is running
         if (activeTimers[card.buttonId]) {
           container.classList.add("active");
         }
 
+        const inputs = container.querySelectorAll(".settings-container input");
+        inputs.forEach((input, index) => {
+          input.addEventListener("change", () => {
+            const cards = JSON.parse(localStorage.getItem("timeTrackerCards") || "[]");
+            const idx = cards.findIndex(c => c.buttonId === card.buttonId);
+            if (idx === -1) return;
+
+            switch (index) {
+              case 0: cards[idx].name = input.value; break;
+              case 1: cards[idx].projectId = input.value; break;
+              case 2: cards[idx].taskId = input.value; break;
+              case 3: cards[idx].categoryId = input.value; break;
+            }
+
+            localStorage.setItem("timeTrackerCards", JSON.stringify(cards));
+
+            // Optionally update button label if name changed
+            if (index === 0) {
+              const btn = container.querySelector("button");
+              if (btn) btn.textContent = input.value || "(no name)";
+            }
+
+            updateSummaryTable?.(); // Update summary if open
+          });
+        });
+
+        const removeBtn = container.querySelector(".remove-btn");
+
+        removeBtn?.addEventListener("click", () => {
+          if (!confirm(`Delete "${card.name}"? This cannot be undone.`)) return;
+
+          // 1. Remove card from localStorage
+          const cards = JSON.parse(localStorage.getItem("timeTrackerCards") || "[]");
+          const updatedCards = cards.filter(c => c.buttonId !== card.buttonId);
+          localStorage.setItem("timeTrackerCards", JSON.stringify(updatedCards));
+
+          // 2. Remove time logs
+          const logs = JSON.parse(localStorage.getItem("timelogs") || "{}");
+          delete logs[card.buttonId];
+          localStorage.setItem("timelogs", JSON.stringify(logs));
+
+          // 3. Remove from activeTimers (if running)
+          delete activeTimers[card.buttonId];
+
+          // 4. Remove from DOM
+          container.remove();
+
+          // 5. Update UI everywhere
+          updateTimerButtons(card.buttonId);     // Play/stop toggle visibility
+          updateTimerDisplay();                  // Elapsed time labels
+          updateSummaryTable?.();                // Summary view if open
+        });
+
+
+        const stopOthersBtn = container.querySelector(".stop-btn");
+
+        stopOthersBtn?.addEventListener("click", () => {
+          const id = card.buttonId;
+
+          // Stop all other timers
+          for (const otherId in activeTimers) {
+            if (otherId !== id) {
+              stopTimer(otherId);
+
+              const otherCard = document.querySelector(`.button-container[data-id="${otherId}"]`);
+              if (otherCard) otherCard.classList.remove("active");
+            }
+          }
+
+          // Start this one if not already running
+          if (!activeTimers[id]) {
+            startTimer(id);
+            container.classList.add("active");
+          }
+        });
+
+        const cloneBtn = container.querySelector(".clone-btn");
+        cloneBtn?.addEventListener("click", () => {
+          const cards = JSON.parse(localStorage.getItem("timeTrackerCards") || "[]");
+
+          const newButtonId = `btn-${Math.random().toString(36).substr(2, 8)}`;
+          const clonedCard = {
+            sort: cards.length,
+            buttonId: newButtonId,
+            name: card.name + " (copy)",
+            color: card.color,
+            projectId: card.projectId,
+            taskId: card.taskId,
+            categoryId: card.categoryId,
+            workItemId: "", // explicitly not copied
+          };
+
+          cards.push(clonedCard);
+          localStorage.setItem("timeTrackerCards", JSON.stringify(cards));
+
+          // Refresh UI
+          loadCardsFromStorage();
+        });
+
+
+
+        // Track the drag source
+        let dragSource = null;
+
+        container.addEventListener("dragstart", (e) => {
+          dragSource = container;
+          container.classList.add("dragging");
+        });
+
+        container.addEventListener("dragover", (e) => {
+          e.preventDefault(); // Necessary to allow dropping
+          container.classList.add("drag-hover");
+        });
+
+        container.addEventListener("dragleave", () => {
+          container.classList.remove("drag-hover");
+        });
+
+        container.addEventListener("drop", () => {
+          container.classList.remove("drag-hover");
+          if (!dragSource || dragSource === container) return;
+
+          const parent = container.parentElement;
+          const all = Array.from(parent.querySelectorAll(".button-container"));
+
+          const fromIndex = all.indexOf(dragSource);
+          const toIndex = all.indexOf(container);
+
+          if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+
+          // Reorder in DOM
+          if (fromIndex < toIndex) {
+            parent.insertBefore(dragSource, container.nextSibling);
+          } else {
+            parent.insertBefore(dragSource, container);
+          }
+
+          updateLocalCardOrder();
+        });
+
+        container.addEventListener("dragend", () => {
+          container.classList.remove("dragging");
+          dragSource = null;
+        });
+
         cardContainer.appendChild(container);
       }
     }
+
+    function updateLocalCardOrder() {
+      const cardElements = Array.from(document.querySelectorAll(".button-container"));
+      const stored = JSON.parse(localStorage.getItem("timeTrackerCards") || "[]");
+
+      // Re-sort based on DOM
+      const sorted = cardElements.map(el => el.getAttribute("data-id"));
+      const updated = sorted
+        .map((id, index) => {
+          const match = stored.find(c => c.buttonId === id);
+          if (match) {
+            return { ...match, sort: index };
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      localStorage.setItem("timeTrackerCards", JSON.stringify(updated));
+    }
+
+
+    function updateSummaryTable() {
+      const logs = JSON.parse(localStorage.getItem("timelogs") || "{}");
+      const cards = JSON.parse(localStorage.getItem("timeTrackerCards") || "[]");
+      const date = document.getElementById("summaryDateSelector").value;
+
+      const tbody = document.getElementById("summaryTableBody");
+      tbody.innerHTML = "";
+
+      for (const card of cards) {
+        const id = card.buttonId;
+        const sessions = logs[id] || [];
+        let totalMs = 0;
+
+        for (const s of sessions) {
+          if (s.start.startsWith(date)) {
+            const start = new Date(s.start);
+            const end = s.end ? new Date(s.end) : new Date();
+            totalMs += end - start;
+          }
+        }
+
+        if (totalMs === 0) continue;
+
+        const seconds = Math.floor(totalMs / 1000);
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+
+        const roundedMinutes = Math.ceil(seconds / 60 / 15) * 15;
+        const rh = Math.floor(roundedMinutes / 60);
+        const rm = roundedMinutes % 60;
+
+        const formatted = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+        const rounded = `${rh.toString().padStart(2, "0")}:${rm.toString().padStart(2, "0")}:00`;
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td style="padding: 0.5em;">${card.name}</td>
+          <td style="padding: 0.5em;">${card.projectId || "-"}</td>
+          <td style="padding: 0.5em;">${card.taskId || "-"}</td>
+          <td style="padding: 0.5em;">${card.categoryId || "-"}</td>
+          <td style="text-align:right; padding: 0.5em;">${formatted}</td>
+          <td style="text-align:right; padding: 0.5em;">${rounded}</td>
+        `;
+
+        tbody.appendChild(row);
+      }
+    }
+
 
 
     window.addEventListener("DOMContentLoaded", () => {
@@ -1799,6 +2068,18 @@
         selectedLogDate = dateInput.value;
         localStorage.setItem("selectedLogDate", selectedLogDate);
         updateTimerDisplay(); // re-filter logs
+      });
+
+      const summaryDateInput = document.getElementById("summaryDateSelector");
+      if (summaryDateInput) {
+        summaryDateInput.value = new Date().toISOString().split("T")[0];
+        summaryDateInput.addEventListener("change", updateSummaryTable);
+      }
+
+      document.querySelectorAll(".color-swatch").forEach(swatch => {
+        swatch.addEventListener("dragstart", (e) => {
+          e.dataTransfer.setData("text/plain", swatch.getAttribute("data-color"));
+        });
       });
 
       loadTimersFromStorage();
