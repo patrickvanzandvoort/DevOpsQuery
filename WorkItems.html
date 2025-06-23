@@ -722,7 +722,7 @@
 
   <div class="tab-header">
     <div class="tab-item" data-tab="tab-workitems" id="btn-tab-workitems">📋 Work Items</div>
-    <div class="tab-item" data-tab="tab-hello" id="btn-tab-hello">👋 Hello World</div>
+    <div class="tab-item" data-tab="tab-hello" id="btn-tab-hello">Timers</div>
   </div>
 
   <div id="tab-workitems" class="tab-content">
@@ -974,15 +974,15 @@
       alert(`Logs for item #${id} on ${selectedLogDate}:\n\n${summary}`);
     }
 
-
     function updateTimerButtons(id) {
       const isRunning = !!activeTimers[id];
-      const playBtn = document.getElementById(`play-${id}`);
-      const stopBtn = document.getElementById(`stop-${id}`);
-      if (playBtn && stopBtn) {
-        playBtn.style.display = isRunning ? "none" : "inline-block";
-        stopBtn.style.display = isRunning ? "inline-block" : "none";
-      }
+
+      // Find all play and stop buttons with matching data-buttonid
+      const playButtons = document.querySelectorAll(`.timer-btn.play[data-buttonid="${id}"]`);
+      const stopButtons = document.querySelectorAll(`.timer-btn.stop[data-buttonid="${id}"]`);
+
+      playButtons.forEach(btn => btn.style.display = isRunning ? "none" : "inline-block");
+      stopButtons.forEach(btn => btn.style.display = isRunning ? "inline-block" : "none");
     }
 
     function updateTimerDisplay() {
@@ -1198,8 +1198,8 @@
                     <td id="timer-${item.id}">
                       <div class="timer-container">
                         <span class="time-display" data-buttonid="${card?.buttonId || 'btn-' + item.id}">00:00:00</span>
-                        <button id="play-${item.id}" onclick="startWorkItemTimer(${item.id})" class="timer-btn play">▶️</button>
-                        <button id="stop-${item.id}" onclick="stopWorkItemTimer(${item.id})" class="timer-btn stop">⏹️</button>
+                        <button id="play-${item.id}" onclick="startWorkItemTimer(${item.id})" class="timer-btn play" data-buttonid="${card?.buttonId || 'btn-' + item.id}">▶️</button>
+                        <button id="stop-${item.id}" onclick="stopWorkItemTimer(${item.id})" class="timer-btn stop" data-buttonid="${card?.buttonId || 'btn-' + item.id}">⏹️</button>
                         <button onclick="showLogs(${item.id})" class="timer-btn">📜</button>
                       </div>
                     </td> 
