@@ -770,6 +770,8 @@
       <input type="date" id="summaryDateSelector">
       <button id="summaryDateNext">&gt;</button>
     </div>
+    <button id="postSummaryData">Submit Logs</button>
+    <span id="postStatus" style="margin-left: 1em;"></span>
     <table style="margin-top: 1em; width: 100%; border-collapse: collapse;">
       <thead>
         <tr>
@@ -2192,6 +2194,66 @@
         passwordInput.type = isHidden ? "text" : "password";
         toggleBtn.textContent = isHidden ? "🙈" : "👁️";
       });
+
+
+      document.getElementById("postSummaryData").addEventListener("click", async () => {
+        const baseUrl = localStorage.getItem("BaseUrl") || "";
+        const userName = localStorage.getItem("UserName") || "";
+        const passWord = localStorage.getItem("PassWord") || "";
+        const companyId = localStorage.getItem("companyId") || "";
+        const date = document.getElementById("summaryDateSelector").value;
+
+        if (!baseUrl || !userName || !passWord || !companyId) {
+          document.getElementById("postStatus").textContent = "❌ Missing settings";
+          return;
+        }
+
+        const logs = JSON.parse(localStorage.getItem("timelogs") || "{}");
+        const cards = JSON.parse(localStorage.getItem("timeTrackerCards") || "[]");
+
+        const payload = [];
+
+        for (const card of cards) {
+          const sessions = logs[card.buttonId] || [];
+          for (const s of sessions) {
+            if (!s.start.startsWith(date)) continue;
+
+            payload.push({
+              Project: card.projectId || "",
+              Task: card.taskId || "",
+              Category: card.categoryId || "",
+              WorkItem: card.name || "",
+              StartTime: s.start,
+              EndTime: s.end || new Date().toISOString()
+            });
+          }
+        }
+
+        if (payload.length === 0) {
+          document.getElementById("postStatus").textContent = "⚠️ No logs to submit.";
+          return;
+        }
+
+        try {
+          const response = await fetch(`${baseUrl}Insert/RentalObjectUser`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Basic " + btoa(`${companyId}/${userName}:${passWord}`)
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) throw new Error(await response.text());
+
+          document.getElementById("postStatus").textContent = "✅ Submitted!";
+        } catch (err) {
+          document.getElementById("postStatus").textContent = "❌ Failed: " + err.message;
+        }
+      });
+
+
+
 
       loadTimersFromStorage();
       setInterval(updateTimerDisplay, 1000);
