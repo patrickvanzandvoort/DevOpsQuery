@@ -806,6 +806,7 @@
     let allData = [];
     let sortState = { column: "", asc: true };
     let selectedLogDate = new Date().toISOString().split("T")[0];
+    let dragSource = null;
 
     const filterState = JSON.parse(localStorage.getItem("multiFilters") || '{"state":[],"type":[],"assignedTo":[],"project":[]}');
 
@@ -1748,7 +1749,7 @@
       cards.push(newCard);
       localStorage.setItem("timeTrackerCards", JSON.stringify(cards));
 
-      // 🔧 Update the table row button data-buttonid values (if they exist)
+      //  Update the table row button data-buttonid values (if they exist)
       const playBtn = document.getElementById(`play-${workItemId}`);
       const stopBtn = document.getElementById(`stop-${workItemId}`);
       const timerSpan = document.querySelector(`.time-display[data-buttonid="btn-${workItemId}"]`);
@@ -1782,7 +1783,7 @@
       <div class="timer-btnStack">
         <div class="taskBar">
           <div class="taskbtn stop-btn" title="Start only this task, stop others">☎️</div>
-          <div class="taskbtn edit-btn">🖊️</div>
+          <div class="taskbtn edit-btn">🔧</div>
           <div class="taskbtn clone-btn">🧬</div>
           <div class="taskbtn remove-btn" title="Delete">🗑️</div>
         </div>
@@ -1882,9 +1883,7 @@
           updateSummaryTable?.();                // Summary view if open
         });
 
-
         const stopOthersBtn = container.querySelector(".stop-btn");
-
         stopOthersBtn?.addEventListener("click", () => {
           const id = card.buttonId;
 
@@ -1928,11 +1927,6 @@
           loadCardsFromStorage();
         });
 
-
-
-        // Track the drag source
-        let dragSource = null;
-
         container.addEventListener("dragstart", (e) => {
           dragSource = container;
           container.classList.add("dragging");
@@ -1947,8 +1941,29 @@
           container.classList.remove("drag-hover");
         });
 
-        container.addEventListener("drop", () => {
+        container.addEventListener("drop", (e) => {
+          e.preventDefault();
           container.classList.remove("drag-hover");
+
+          const droppedData = e.dataTransfer.getData("text/plain");
+
+          // 🟡 Handle color swatch drop
+          if (droppedData && /^#(?:[0-9a-fA-F]{3}){1,2}$/.test(droppedData)) {
+            container.style.backgroundColor = droppedData;
+
+            // Update color in localStorage
+            const cards = JSON.parse(localStorage.getItem("timeTrackerCards") || "[]");
+            const idx = cards.findIndex(c => c.buttonId === card.buttonId);
+            if (idx !== -1) {
+              cards[idx].color = droppedData;
+              localStorage.setItem("timeTrackerCards", JSON.stringify(cards));
+            }
+
+            console.log(`✅ Color ${droppedData} dropped on card ${card.buttonId}`);
+            return; // Don't continue to card reorder
+          }
+
+          // 🟢 Handle card reorder drop
           if (!dragSource || dragSource === container) return;
 
           const parent = container.parentElement;
@@ -1959,7 +1974,7 @@
 
           if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
 
-          // Reorder in DOM
+          // Move DOM element
           if (fromIndex < toIndex) {
             parent.insertBefore(dragSource, container.nextSibling);
           } else {
@@ -1968,7 +1983,7 @@
 
           updateLocalCardOrder();
         });
-
+        
         container.addEventListener("dragend", () => {
           container.classList.remove("dragging");
           dragSource = null;
@@ -1982,20 +1997,38 @@
       const cardElements = Array.from(document.querySelectorAll(".button-container"));
       const stored = JSON.parse(localStorage.getItem("timeTrackerCards") || "[]");
 
-      // Re-sort based on DOM
-      const sorted = cardElements.map(el => el.getAttribute("data-id"));
-      const updated = sorted
-        .map((id, index) => {
-          const match = stored.find(c => c.buttonId === id);
-          if (match) {
-            return { ...match, sort: index };
-          }
-          return null;
-        })
-        .filter(Boolean);
+      // Build a map for fast lookup
+      const map = Object.fromEntries(stored.map(c => [c.buttonId, c]));
+
+      // Find the changed position (if any)
+      let changedIndex = -1;
+      for (let i = 0; i < cardElements.length; i++) {
+        const id = cardElements[i].getAttribute("data-id");
+        const original = stored.find(c => c.buttonId === id);
+        if (!original || original.sort !== i) {
+          changedIndex = i;
+          break;
+        }
+      }
+
+      if (changedIndex !== -1) {
+        const changedId = cardElements[changedIndex].getAttribute("data-id");
+        const afterCard = cardElements[changedIndex + 1];
+        const afterSort = afterCard ? stored.find(c => c.buttonId === afterCard.getAttribute("data-id"))?.sort : null;
+
+        if (afterSort != null) {
+          map[changedId].sort = afterSort - 0.5;
+        } else {
+          map[changedId].sort = stored.length + 1;
+        }
+      }
+
+      const updated = Object.values(map).sort((a, b) => a.sort - b.sort)
+        .map((c, i) => ({ ...c, sort: i }));
 
       localStorage.setItem("timeTrackerCards", JSON.stringify(updated));
     }
+
 
 
     function updateSummaryTable() {
