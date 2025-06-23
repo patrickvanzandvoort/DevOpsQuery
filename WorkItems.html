@@ -1016,21 +1016,15 @@
 
         const formatted = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 
-        // 🔧 Support both timer-<workItemId> and timer-<buttonId>
-        const timerEl = document.getElementById(`timer-${id}`);
-        if (timerEl) {
-          const display = timerEl.querySelector(".time-display") || timerEl.querySelector("span");
-          if (display) {
-            display.textContent = formatted;
-          } else {
-            timerEl.textContent = formatted;
-          }
-        }
+        // 🔁 Find all spans that match this timer id
+        const targets = document.querySelectorAll(`.time-display[data-buttonid="${id}"]`);
+        targets.forEach(span => span.textContent = formatted);
 
-        // 🔁 Always keep timer buttons updated too
         updateTimerButtons(id);
       }
     }
+
+
 
     function getMultiSelectHTML(id, options, selectedValues) {
       const sorted = [...options].sort((a, b) => a.localeCompare(b));
@@ -1186,6 +1180,8 @@
           const stateClass = `state-border-${safeState || 'Default'}`;
           const descHtml = item.description ? highlight(item.description, filterInput.value.trim().toLowerCase()) : "<em>No description</em>";
 
+          const card = getCardByWorkItemId(item.id);
+
           html += `<tr>
                     <td>
                       <a href="${link}" target="_blank">${item.id}</a><br/>
@@ -1201,7 +1197,7 @@
                     </td>
                     <td id="timer-${item.id}">
                       <div class="timer-container">
-                        <span class="time-display">00:00:00</span>
+                        <span class="time-display" data-buttonid="${card?.buttonId || 'btn-' + item.id}">00:00:00</span>
                         <button id="play-${item.id}" onclick="startWorkItemTimer(${item.id})" class="timer-btn play">▶️</button>
                         <button id="stop-${item.id}" onclick="stopWorkItemTimer(${item.id})" class="timer-btn stop">⏹️</button>
                         <button onclick="showLogs(${item.id})" class="timer-btn">📜</button>
@@ -1735,7 +1731,7 @@
           <button id="${buttonId}" data-id="${buttonId}" data-workitem-id="${workItemId}">
             ${card.name || "(no name)"}
           </button>
-          <span id="timer-${buttonId}">00:00:00</span>
+          <span id="timer-${buttonId}" class="time-display" data-buttonid="${buttonId}">00:00:00</span>
         </div>
       </div>
       <div class="settings-container" style="display: none;">
