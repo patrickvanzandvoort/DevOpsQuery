@@ -428,6 +428,260 @@
     .state-border-Default {
       border-left: 4px solid #888;
     }
+
+    .tab-header {
+      display: flex;
+      border-bottom: 2px solid var(--border-color);
+      margin-top: 1em;
+    }
+
+    .tab-item {
+      padding: 0.6em 1.2em;
+      margin-right: 0.3em;
+      background: var(--table-alt);
+      color: var(--text-color);
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      font-weight: 500;
+      transition: background 0.3s;
+    }
+
+    .tab-item:hover {
+      background: var(--hover-row-bg);
+    }
+
+    .tab-item.active-tab {
+      background: var(--bg-color);
+      border-bottom: 2px solid var(--bg-color);
+      font-weight: bold;
+    }
+
+    #buttonList {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      /* Auto columns */
+      gap: 10px;
+      /* Space between buttons */
+      padding: 10px;
+    }
+
+
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      background: #f4f4f460;
+      border-radius: 8px;
+    }
+
+    .button-container.active {
+      background-color: rgb(181, 171, 171);
+    }
+
+    .button-container.drag-over {
+      background-color: #fff;
+      /* Highlight color */
+      /* Add any other styles you want during drag-over, e.g., border, transition */
+      transition: background-color 0.3s ease;
+    }
+
+    .add-button-container input {
+      padding: 5px;
+      margin-right: 10px;
+    }
+
+
+    .taskBar {
+      font-size: 40px;
+      background-color: #e2dbdb;
+      text-shadow: 1px 2px #000000, -1px -1px 2px #ffffff;
+    }
+
+    .active .taskBar {
+
+      background-color: rgb(255, 61, 61);
+    }
+
+    .taskbtn {
+      cursor: pointer;
+      border-radius: 8px;
+      /* Consistent rounding for all buttons */
+      transition: box-shadow 0.3s ease-in-out;
+      /* Smooth transition effect */
+    }
+
+
+
+    .taskbtn.edit-btn:hover {
+      box-shadow: inset 0 0 0 2px rgb(0, 151, 245);
+    }
+
+    .taskbtn.stop-btn:hover {
+      box-shadow: inset 0 0 0 2px rgb(255, 179, 0);
+    }
+
+    .taskbtn.remove-btn:hover {
+      box-shadow: inset 0 0 0 2px rgb(255, 0, 0);
+    }
+
+    .taskbtn.clone-btn:hover {
+      box-shadow: inset 0 0 0 2px rgb(1, 81, 7);
+    }
+
+
+
+    .timer-btnStack.drag-over {
+      background-color: #fff;
+      /* Highlight color */
+      /* Add any other styles you want during drag-over, e.g., border, transition */
+      transition: background-color 0.3s ease;
+    }
+
+
+    .timer-btnStack {
+      display: flex;
+      width: fit-content;
+      border-radius: 8px;
+      overflow: hidden;
+      /*border: 1px solid #ccc;*/
+      width: 100%;
+      box-shadow: 0px 5px 13px 3px rgb(43 39 39);
+    }
+
+    .timer-btnStack .timer-btn {
+      /* padding: 60px 40px; */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: none;
+      background: #007bff;
+      justify-content: space-between;
+      width: 100%;
+      height: 94.5%;
+      color: white;
+      border: none;
+      text-align: center;
+    }
+
+    .timer-btnStack .timer-btn:hover {
+      box-shadow: inset 0 0px 13px 3px rgba(0, 0, 0, .2);
+    }
+
+
+    .timer-btnStack .timer-btn button {
+      color: rgb(240, 233, 233);
+      text-shadow: 1px 1px 2px #000000, -1px -1px 2px #ffffff;
+
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      /* removes default border if you don't want it */
+      width: 100%;
+      height: 100%;
+      font-size: 40px;
+
+      flex-grow: 0;
+    }
+
+
+    .active .timer-btnStack .timer-btn {
+      background: #28a745 !important;
+      /* Green when active */
+    }
+
+
+    .timer-btnStack .timer-btn span {
+      color: rgba(0, 0, 0, .2);
+      font-family: monospace;
+      flex-grow: 0;
+    }
+
+    .active .timer-btnStack .timer-btn span {
+      color: rgb(3, 6, 69);
+    }
+
+    .timer-btnStack div {
+      padding: 7px 7px;
+      /*background-color: #e0e0e0;*/
+      /*min-width: 20px; */
+      flex-grow: 0;
+    }
+
+
+
+
+    #addButton,
+    #saveToUniconta {
+      padding: 8px 15px;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    #history {
+      margin-top: 20px;
+    }
+
+    span {
+      margin-top: 5px;
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+
+    .countdown {
+      font-size: 40px;
+      color: black;
+      background-color: rgb(255, 0, 0) !important;
+    }
+
+    .output-table {
+      text-align: left;
+      width: 100%;
+      font-family: monospace;
+    }
+
+
+
+    .color-item {
+      display: inline-block;
+      cursor: grab;
+      transition: opacity 0.3s ease;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+    }
+
+    .color-item:hover {
+      opacity: 0.8;
+    }
+
+    .color-item.dragging {
+      opacity: 0.4;
+      /* Visual feedback while dragging */
+    }
+
+
+
+
+    /* Target iPhone-sized screens (typically up to 430px wide) */
+    @media (max-width: 430px) {
+      #buttonList {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      }
+
+      .taskBar {
+        font-size: 12px;
+      }
+
+      .timer-btnStack .timer-btn button {
+        font-size: 12px;
+      }
+    }
   </style>
 
 </head>
@@ -466,14 +720,26 @@
     </div>
   </div>
 
-  <div class="filter-bar">
-    <input id="filter" placeholder="🔍 Filter work items..." />
-    <!-- NEW: clear-filters button -->
-    <button class="clear-filters" onclick="clearAllFilters()" title="Reset all filters">✖️ Clear all</button>
-    <button class="download-csv" onclick="downloadAsCSV()">📗 CSV</button>
+  <div class="tab-header">
+    <div class="tab-item" data-tab="tab-workitems" id="btn-tab-workitems">📋 Work Items</div>
+    <div class="tab-item" data-tab="tab-hello" id="btn-tab-hello">👋 Hello World</div>
   </div>
 
-  <div id="table-container">No data loaded yet.</div>
+  <div id="tab-workitems" class="tab-content">
+    <div class="filter-bar">
+      <input id="filter" placeholder="🔍 Filter work items..." />
+      <button class="clear-filters" onclick="clearAllFilters()" title="Reset all filters">✖️ Clear all</button>
+      <button class="download-csv" onclick="downloadAsCSV()">📗 CSV</button>
+    </div>
+    <div id="table-container">No data loaded yet.</div>
+  </div>
+
+  <div id="tab-hello" class="tab-content" style="display: none; margin-top: 1em;">
+    <h2>Time tracker</h2>
+    <div id="buttonList"></div>
+  </div>
+
+
 
   <script>
     const urlInput = document.getElementById("url");
@@ -626,27 +892,64 @@
 
     function startTimer(id) {
       if (activeTimers[id]) return;
+
       const now = new Date().toISOString();
       const logs = JSON.parse(localStorage.getItem("timelogs") || "{}");
+
       if (!logs[id]) logs[id] = [];
       logs[id].push({ start: now });
       localStorage.setItem("timelogs", JSON.stringify(logs));
       activeTimers[id] = { start: now };
+
       updateTimerButtons(id);
+      updateTimerDisplay();
+
+      // ✅ Apply .active to the parent container
+      const btn = document.querySelector(`button[data-id="${id}"]`);
+      btn?.parentElement?.classList.add("active");
     }
+
 
     function stopTimer(id) {
       const logs = JSON.parse(localStorage.getItem("timelogs") || "{}");
       const sessions = logs[id] || [];
       const last = sessions[sessions.length - 1];
+
       if (last && !last.end) {
         last.end = new Date().toISOString();
         logs[id] = sessions;
         localStorage.setItem("timelogs", JSON.stringify(logs));
         delete activeTimers[id];
       }
+
       updateTimerButtons(id);
+      updateTimerDisplay();
+
+      const btn = document.querySelector(`button[data-id="${id}"]`);
+      btn?.parentElement?.classList.remove("active");
+
+
     }
+
+    function startWorkItemTimer(workItemId) {
+      ensureCardExistsForWorkItem(workItemId); // ✅ create card if missing
+      const card = getCardByWorkItemId(workItemId);
+      if (card) startTimer(card.buttonId);     // ✅ start timer using buttonId
+    }
+
+    function stopWorkItemTimer(workItemId) {
+      const card = getCardByWorkItemId(workItemId);
+      if (card) {
+        stopTimer(card.buttonId); // 🛑 Stop timer by card.buttonId
+      }
+    }
+
+    function getCardByWorkItemId(workItemId) {
+      const cards = JSON.parse(localStorage.getItem("timeTrackerCards") || "[]");
+      return cards.find(c => c.workItemId === String(workItemId));
+    }
+
+
 
     function saveTimeLog(id, session) {
       const logs = JSON.parse(localStorage.getItem("timelogs") || "{}");
@@ -688,7 +991,6 @@
       const today = new Date().toISOString().split("T")[0];
       const targetDate = selectedLogDate;
 
-
       for (const id of Object.keys(logs)) {
         const sessions = logs[id] || [];
         let totalMs = 0;
@@ -706,24 +1008,29 @@
             }
           }
         }
+
         const seconds = Math.floor(totalMs / 1000);
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);
         const s = seconds % 60;
 
-        const td = document.getElementById(`timer-${id}`);
-        if (td) {
-          const display = td.querySelector(".time-display");
+        const formatted = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+
+        // 🔧 Support both timer-<workItemId> and timer-<buttonId>
+        const timerEl = document.getElementById(`timer-${id}`);
+        if (timerEl) {
+          const display = timerEl.querySelector(".time-display") || timerEl.querySelector("span");
           if (display) {
-            display.textContent = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+            display.textContent = formatted;
+          } else {
+            timerEl.textContent = formatted;
           }
         }
 
-
+        // 🔁 Always keep timer buttons updated too
         updateTimerButtons(id);
       }
     }
-
 
     function getMultiSelectHTML(id, options, selectedValues) {
       const sorted = [...options].sort((a, b) => a.localeCompare(b));
@@ -895,8 +1202,8 @@
                     <td id="timer-${item.id}">
                       <div class="timer-container">
                         <span class="time-display">00:00:00</span>
-                        <button id="play-${item.id}" onclick="startTimer(${item.id})" class="timer-btn play">▶️</button>
-                        <button id="stop-${item.id}" onclick="stopTimer(${item.id})" class="timer-btn stop">⏹️</button>
+                        <button id="play-${item.id}" onclick="startWorkItemTimer(${item.id})" class="timer-btn play">▶️</button>
+                        <button id="stop-${item.id}" onclick="stopWorkItemTimer(${item.id})" class="timer-btn stop">⏹️</button>
                         <button onclick="showLogs(${item.id})" class="timer-btn">📜</button>
                       </div>
                     </td> 
@@ -1359,6 +1666,136 @@
       loadTimersFromStorage();
       setInterval(updateTimerDisplay, 1000);
     });
+
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-content").forEach(el => el.style.display = "none");
+      document.getElementById(tabId).style.display = "block";
+
+      document.querySelectorAll(".tab-item").forEach(tab => tab.classList.remove("active-tab"));
+      document.getElementById("btn-" + tabId).classList.add("active-tab");
+
+      if (tabId === "tab-hello") {
+        loadCardsFromStorage();
+      }
+
+      localStorage.setItem("activeTabId", tabId);
+    }
+
+    function ensureCardExistsForWorkItem(workItemId) {
+      const cards = JSON.parse(localStorage.getItem("timeTrackerCards") || "[]");
+      const exists = cards.some(card => card.workItemId === String(workItemId));
+      if (exists) return;
+
+      const workItem = allData.find(w => w.id === workItemId);
+      const title = workItem ? workItem.title : "(unknown)";
+      const displayName = `#${workItemId} ${title}`;
+      const buttonId = `btn-${Math.random().toString(36).substr(2, 8)}`;
+      const randomColor = `hsl(${Math.floor(Math.random() * 360)}, 60%, 75%)`;
+
+      const newCard = {
+        sort: cards.length,
+        buttonId,
+        name: displayName,
+        workItemId: String(workItemId),
+        color: randomColor
+      };
+
+      cards.push(newCard);
+      localStorage.setItem("timeTrackerCards", JSON.stringify(cards));
+      loadCardsFromStorage(); // Refresh UI
+    }
+
+    function loadCardsFromStorage() {
+      const cardContainer = document.getElementById("buttonList");
+      cardContainer.innerHTML = "";
+
+      const cardData = JSON.parse(localStorage.getItem("timeTrackerCards") || "[]");
+      cardData.sort((a, b) => a.sort - b.sort);
+
+      for (const card of cardData) {
+        const buttonId = card.buttonId || `btn-${Math.random().toString(36).substr(2, 8)}`;
+        const workItemId = card.workItemId || "";
+
+        const container = document.createElement("div");
+        container.className = "button-container";
+        container.setAttribute("draggable", "true");
+        container.setAttribute("data-id", buttonId);
+        container.setAttribute("data-workitem-id", workItemId);
+        container.style.backgroundColor = card.color || "rgb(147, 211, 147)";
+
+        container.innerHTML = `
+      <div class="timer-btnStack">
+        <div class="taskBar">
+          <div class="taskbtn stop-btn" title="Start only this task, stop others">☎️</div>
+          <div class="taskbtn edit-btn">🖊️</div>
+          <div class="taskbtn clone-btn">🔂</div>
+          <div class="taskbtn remove-btn" title="Delete">🗑️</div>
+        </div>
+        <div class="timer-btn">
+          <button id="${buttonId}" data-id="${buttonId}" data-workitem-id="${workItemId}">
+            ${card.name || "(no name)"}
+          </button>
+          <span id="timer-${buttonId}">00:00:00</span>
+        </div>
+      </div>
+      <div class="settings-container" style="display: none;">
+        <input type="text" placeholder="TimesheetText" value="${card.name || ""}">
+        <input type="text" placeholder="Project" value="${card.projectId || ""}">
+        <input type="text" placeholder="Task" value="${card.taskId || ""}">
+        <input type="text" placeholder="Category" value="${card.categoryId || ""}">
+      </div>
+    `;
+
+        const button = container.querySelector("button");
+        if (button) {
+          button.addEventListener("click", () => {
+            const id = card.buttonId;
+            if (activeTimers[id]) {
+              stopTimer(id);
+              container.classList.remove("active");
+            } else {
+              startTimer(id);
+              container.classList.add("active");
+            }
+          });
+        }
+
+
+        // Mark card as active if timer is running
+        if (activeTimers[card.buttonId]) {
+          container.classList.add("active");
+        }
+
+        cardContainer.appendChild(container);
+      }
+    }
+
+
+    window.addEventListener("DOMContentLoaded", () => {
+      const storedTab = localStorage.getItem("activeTabId") || "tab-workitems";
+      switchTab(storedTab);
+
+      // ✅ Enable tab switching via click
+      document.querySelectorAll(".tab-item").forEach(el => {
+        el.addEventListener("click", () => {
+          const tabId = el.getAttribute("data-tab");
+          switchTab(tabId);
+        });
+      });
+
+      const dateInput = document.getElementById("logDateSelector");
+      if (dateInput) dateInput.value = selectedLogDate;
+
+      dateInput?.addEventListener("change", () => {
+        selectedLogDate = dateInput.value;
+        localStorage.setItem("selectedLogDate", selectedLogDate);
+        updateTimerDisplay(); // re-filter logs
+      });
+
+      loadTimersFromStorage();
+      setInterval(updateTimerDisplay, 1000);
+    });
+
 
 
   </script>
