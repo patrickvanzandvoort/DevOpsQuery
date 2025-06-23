@@ -980,7 +980,8 @@
       // Find all play and stop buttons with matching data-buttonid
       const playButtons = document.querySelectorAll(`.timer-btn.play[data-buttonid="${id}"]`);
       const stopButtons = document.querySelectorAll(`.timer-btn.stop[data-buttonid="${id}"]`);
-
+    
+      
       playButtons.forEach(btn => btn.style.display = isRunning ? "none" : "inline-block");
       stopButtons.forEach(btn => btn.style.display = isRunning ? "inline-block" : "none");
     }
@@ -1199,7 +1200,8 @@
                       <div class="timer-container">
                         <span class="time-display" data-buttonid="${card?.buttonId || 'btn-' + item.id}">00:00:00</span>
                         <button id="play-${item.id}" onclick="startWorkItemTimer(${item.id})" class="timer-btn play" data-buttonid="${card?.buttonId || 'btn-' + item.id}">▶️</button>
-                        <button id="stop-${item.id}" onclick="stopWorkItemTimer(${item.id})" class="timer-btn stop" data-buttonid="${card?.buttonId || 'btn-' + item.id}">⏹️</button>
+                        <button id="stop-${item.id}" onclick="stopWorkItemTimer(${item.id})" class="timer-btn stop" data-buttonid="${card?.buttonId || 'btn-' + item.id}" style="display: none;">⏹️</button>
+
                         <button onclick="showLogs(${item.id})" class="timer-btn">📜</button>
                       </div>
                     </td> 
